@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+*.js
+*.js.map
+*.d.ts
+!jest.config.js
+!nest-cli.json
+coverage/
+.nyc_output/
+logs/
+**/generated/
+docs/.vitepress/cache/
+*.env
+!.env.example
+PLAN.md

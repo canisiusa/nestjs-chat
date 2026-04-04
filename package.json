@@ -1,0 +1,29 @@
+{
+  "name": "chat-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-time chat service — SDK + Client + Example App",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @chat-service/example dev",
+    "start:dev": "pnpm --filter @chat-service/example start:dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "msgpackr-extract"
+    ]
+  }
+}

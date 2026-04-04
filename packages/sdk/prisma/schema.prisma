@@ -1,0 +1,297 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ChatChannelType {
+  DIRECT
+  GROUP
+}
+
+enum ChatMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  ADMIN
+  POLL
+}
+
+enum ChatMemberRole {
+  OPERATOR
+  MEMBER
+}
+
+enum ChatPushTrigger {
+  ALL
+  MENTION_ONLY
+  OFF
+}
+
+enum ChatCountPreference {
+  ALL
+  UNREAD_MESSAGE_COUNT_ONLY
+  OFF
+}
+
+enum ChatScheduledStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELED
+}
+
+enum ChatPollStatus {
+  OPEN
+  CLOSED
+}
+
+enum ChatReportCategory {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE
+  OTHER
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model ChatChannel {
+  id            String          @id @default(cuid())
+  tenantId      String
+  type          ChatChannelType
+  name          String?
+  coverUrl      String?
+  customType    String?
+  isFrozen      Boolean         @default(false)
+  metadata      Json?           @default("{}")
+  lastMessageAt DateTime?
+  memberCount   Int             @default(0)
+  createdById   String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+
+  members           ChatChannelMember[]
+  messages          ChatMessage[]
+  pinnedMessages    ChatPinnedMessage[]
+  scheduledMessages ChatScheduledMessage[]
+
+  @@index([tenantId, updatedAt(sort: Desc)])
+  @@index([tenantId, type])
+  @@index([deletedAt])
+}
+
+model ChatChannelMember {
+  id                String              @id @default(cuid())
+  channelId         String
+  channel           ChatChannel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId            String
+  tenantId          String
+  role              ChatMemberRole      @default(MEMBER)
+  isMuted           Boolean             @default(false)
+  mutedUntil        DateTime?
+  isBanned          Boolean             @default(false)
+  bannedUntil       DateTime?
+  banDescription    String?
+  isHidden          Boolean             @default(false)
+  hidePrevMessages  Boolean             @default(false)
+  pushTrigger       ChatPushTrigger     @default(ALL)
+  countPreference   ChatCountPreference @default(ALL)
+  lastReadAt        DateTime?
+  lastReadMessageId String?
+  lastDeliveredAt   DateTime?
+  historyResetAt    DateTime?
+  joinedAt          DateTime            @default(now())
+  leftAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([channelId, userId])
+  @@index([userId, tenantId, leftAt])
+  @@index([channelId, isBanned])
+  @@index([channelId, isMuted])
+  @@index([channelId, role])
+}
+
+model ChatMessage {
+  id               String          @id @default(cuid())
+  channelId        String
+  channel          ChatChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  tenantId         String
+  senderId         String
+  type             ChatMessageType @default(TEXT)
+  text             String?
+
+  // Media
+  fileUrl          String?
+  fileName         String?
+  fileSize         Int?
+  mimeType         String?
+  thumbnailUrl     String?
+
+  // Threading
+  parentMessageId  String?
+
+  // Forwarding
+  isForwarded      Boolean         @default(false)
+  forwardedFromId  String?
+
+  // State
+  isEdited         Boolean         @default(false)
+
+  // Link preview
+  linkMetadata     Json?
+
+  // Mentions (array of user IDs)
+  mentionedUserIds String[]        @default([])
+
+  // Custom metadata
+  metadata         Json?
+
+  // Poll reference
+  pollId           String?
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  reactions ChatReaction[]
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([channelId, deletedAt, createdAt(sort: Desc)])
+  @@index([channelId, parentMessageId, createdAt(sort: Desc)])
+  @@index([tenantId])
+  @@index([senderId])
+  @@index([pollId])
+}
+
+model ChatReaction {
+  id        String      @id @default(cuid())
+  messageId String
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  key       String
+  createdAt DateTime    @default(now())
+
+  @@unique([messageId, userId, key])
+  @@index([messageId])
+}
+
+model ChatPinnedMessage {
+  id         String      @id @default(cuid())
+  channelId  String
+  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  messageId  String
+  pinnedById String
+  createdAt  DateTime    @default(now())
+
+  @@unique([channelId, messageId])
+  @@index([channelId])
+}
+
+model ChatScheduledMessage {
+  id               String              @id @default(cuid())
+  channelId        String
+  channel          ChatChannel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  tenantId         String
+  senderId         String
+  type             ChatMessageType     @default(TEXT)
+  text             String?
+  fileUrl          String?
+  fileName         String?
+  fileSize         Int?
+  mimeType         String?
+  thumbnailUrl     String?
+  mentionedUserIds String[]            @default([])
+  metadata         Json?
+  scheduledAt      DateTime
+  status           ChatScheduledStatus @default(PENDING)
+  sentMessageId    String?
+  errorMessage     String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([channelId, status, scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([senderId])
+}
+
+model ChatPoll {
+  id                  String         @id @default(cuid())
+  channelId           String
+  tenantId            String
+  title               String
+  allowMultipleVotes  Boolean        @default(false)
+  allowUserSuggestion Boolean        @default(false)
+  closeAt             DateTime?
+  status              ChatPollStatus @default(OPEN)
+  voterCount          Int            @default(0)
+  createdById         String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  options ChatPollOption[]
+
+  @@index([channelId])
+}
+
+model ChatPollOption {
+  id        String   @id @default(cuid())
+  pollId    String
+  poll      ChatPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text      String
+  voteCount Int      @default(0)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes ChatPollVote[]
+
+  @@index([pollId])
+}
+
+model ChatPollVote {
+  id        String         @id @default(cuid())
+  optionId  String
+  option    ChatPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime       @default(now())
+
+  @@unique([optionId, userId])
+  @@index([userId])
+}
+
+model ChatUserBlock {
+  id        String   @id @default(cuid())
+  tenantId  String
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId, tenantId])
+  @@index([blockedId, tenantId])
+}
+
+model ChatReport {
+  id          String             @id @default(cuid())
+  tenantId    String
+  reporterId  String
+  category    ChatReportCategory
+  description String?
+  targetType  String             // "channel" | "user" | "message"
+  targetId    String
+  channelId   String?
+  createdAt   DateTime           @default(now())
+
+  @@index([tenantId, targetType])
+  @@index([reporterId])
+}
