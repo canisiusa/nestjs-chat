@@ -9,6 +9,7 @@ import {
   Query,
   Body,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ChatAuthGuard } from '../../common/guards';
 import { CurrentChatUser } from '../../common/decorators';
 import { ChatAuthUser } from '../../core/interfaces/chat-auth.interface';
@@ -26,6 +27,8 @@ import {
   AddReactionDto,
 } from './dto';
 
+@ApiTags('Messages')
+@ApiBearerAuth()
 @Controller()
 @UseGuards(ChatAuthGuard)
 export class MessageController {
@@ -33,6 +36,10 @@ export class MessageController {
 
   // ─── Message CRUD ────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'List messages in a channel' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiResponse({ status: 200, description: 'Messages returned successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Get('channels/:id/messages')
   @UseGuards(ChannelMemberGuard)
   getMessages(
@@ -43,6 +50,11 @@ export class MessageController {
     return this.messageService.getMessages(channelId, user.id, query);
   }
 
+  @ApiOperation({ summary: 'Get a single message by ID' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiResponse({ status: 200, description: 'Message returned successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Get('channels/:id/messages/:messageId')
   @UseGuards(ChannelMemberGuard)
   getMessage(
@@ -53,6 +65,10 @@ export class MessageController {
     return this.messageService.getMessage(channelId, messageId, user.id);
   }
 
+  @ApiOperation({ summary: 'Send a text message to a channel' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiResponse({ status: 201, description: 'Message sent successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member, channel frozen, user muted, or user banned' })
   @Post('channels/:id/messages')
   @UseGuards(ChannelMemberGuard, ChannelNotFrozenGuard, UserNotMutedGuard, UserNotBannedGuard)
   sendTextMessage(
@@ -63,6 +79,11 @@ export class MessageController {
     return this.messageService.sendTextMessage(channelId, user.id, user.tenantId, dto);
   }
 
+  @ApiOperation({ summary: 'Update a message' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiResponse({ status: 200, description: 'Message updated successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Patch('channels/:id/messages/:messageId')
   @UseGuards(ChannelMemberGuard)
   updateMessage(
@@ -74,6 +95,11 @@ export class MessageController {
     return this.messageService.updateMessage(channelId, messageId, user.id, dto);
   }
 
+  @ApiOperation({ summary: 'Delete a message' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiResponse({ status: 200, description: 'Message deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Delete('channels/:id/messages/:messageId')
   @UseGuards(ChannelMemberGuard)
   deleteMessage(
@@ -86,6 +112,11 @@ export class MessageController {
 
   // ─── Threading ───────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Get threaded replies for a message' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Parent message ID' })
+  @ApiResponse({ status: 200, description: 'Thread messages returned successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Get('channels/:id/messages/:messageId/thread')
   @UseGuards(ChannelMemberGuard)
   getThread(
@@ -98,6 +129,11 @@ export class MessageController {
 
   // ─── Forwarding ──────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Forward a message to another channel' })
+  @ApiParam({ name: 'id', description: 'Source channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID to forward' })
+  @ApiResponse({ status: 201, description: 'Message forwarded successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Post('channels/:id/messages/:messageId/forward')
   @UseGuards(ChannelMemberGuard)
   forwardMessage(
@@ -111,6 +147,8 @@ export class MessageController {
 
   // ─── Search ──────────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Search messages across channels' })
+  @ApiResponse({ status: 200, description: 'Search results returned successfully' })
   @Post('messages/search')
   searchMessages(@CurrentChatUser() user: ChatAuthUser, @Body() dto: MessageSearchDto) {
     return this.messageService.searchMessages(user.tenantId, user.id, dto);
@@ -118,6 +156,11 @@ export class MessageController {
 
   // ─── Reactions ───────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Add a reaction to a message' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiResponse({ status: 201, description: 'Reaction added successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Post('channels/:id/messages/:messageId/reactions')
   @UseGuards(ChannelMemberGuard)
   addReaction(
@@ -129,6 +172,12 @@ export class MessageController {
     return this.messageService.addReaction(channelId, messageId, user.id, dto);
   }
 
+  @ApiOperation({ summary: 'Remove a reaction from a message' })
+  @ApiParam({ name: 'id', description: 'Channel ID' })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiParam({ name: 'key', description: 'Reaction key to remove' })
+  @ApiResponse({ status: 200, description: 'Reaction removed successfully' })
+  @ApiResponse({ status: 403, description: 'Not a member of this channel' })
   @Delete('channels/:id/messages/:messageId/reactions/:key')
   @UseGuards(ChannelMemberGuard)
   removeReaction(

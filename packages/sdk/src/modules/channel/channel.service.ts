@@ -60,7 +60,10 @@ export class ChannelService {
         where.name = { contains: query.search, mode: 'insensitive' };
       }
 
-      if (!query.includeEmpty) {
+      const limit = Math.min(Math.max(parseInt(String(query.limit ?? 20), 10) || 20, 1), 100);
+      const includeEmpty = query.includeEmpty === true || query.includeEmpty === 'true';
+
+      if (!includeEmpty) {
         where.lastMessageAt = { not: null };
       }
 
@@ -74,7 +77,7 @@ export class ChannelService {
           query.order === 'chronological'
             ? { createdAt: 'desc' }
             : { lastMessageAt: { sort: 'desc', nulls: 'last' } },
-        take: query.limit,
+        take: limit,
       });
 
       return Promise.all(channels.map((ch) => this.enrichChannel(ch, userId)));

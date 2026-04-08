@@ -49,35 +49,34 @@ If your project is in the same monorepo or you link the package locally:
 pnpm add @chat-service/sdk
 ```
 
-### Generate the Prisma client
+### Apply the chat database schema
 
-The SDK ships with its own Prisma schema (`packages/sdk/prisma/schema.prisma`) for the 11 chat tables. After installation, generate the Prisma client:
+The SDK requires a **dedicated PostgreSQL database** for chat data (11 tables, separate from your application database). It ships with a CLI tool to manage migrations:
 
 ```bash
-cd node_modules/@chat-service/sdk && npx prisma generate
+# Apply migrations (production — safe, applies only pending migrations)
+CHAT_DATABASE_URL="postgresql://user:pass@localhost:5432/chat_db" npx chat-migrate deploy
+
+# Create + apply migrations (development)
+CHAT_DATABASE_URL="postgresql://user:pass@localhost:5432/chat_db" npx chat-migrate dev
+
+# Check migration status
+CHAT_DATABASE_URL="postgresql://user:pass@localhost:5432/chat_db" npx chat-migrate status
+
+# Open Prisma Studio (visual DB browser)
+CHAT_DATABASE_URL="postgresql://user:pass@localhost:5432/chat_db" npx chat-migrate studio
 ```
 
-Or add a postinstall script to your `package.json`:
-
+::: tip Add to your scripts
 ```json
 {
   "scripts": {
-    "postinstall": "cd node_modules/@chat-service/sdk && npx prisma generate"
+    "chat:migrate": "CHAT_DATABASE_URL=$CHAT_DATABASE_URL npx chat-migrate deploy",
+    "chat:studio": "CHAT_DATABASE_URL=$CHAT_DATABASE_URL npx chat-migrate studio"
   }
 }
 ```
-
-### Apply the chat schema to your database
-
-The SDK requires a **dedicated PostgreSQL database** for chat data (separate from your application database):
-
-```bash
-# Set the chat database URL
-export CHAT_DATABASE_URL="postgresql://user:pass@localhost:5432/chat_db?schema=public"
-
-# Push the schema
-cd node_modules/@chat-service/sdk && npx prisma db push
-```
+:::
 
 ---
 

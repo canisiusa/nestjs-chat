@@ -21,6 +21,10 @@ export interface ChatModuleOptions {
     maxMessageLength?: number;
     maxPollOptions?: number;
   };
+  logging?: {
+    level?: 'debug' | 'info' | 'warn' | 'error';
+    directory?: string;
+  };
 }
 
 export interface ChatModuleProviders {
@@ -36,4 +40,8 @@ export interface ChatModuleAsyncOptions {
   useFactory: (...args: any[]) => ChatModuleOptions | Promise<ChatModuleOptions>;
   inject?: any[];
   providers: ChatModuleProviders;
+  logging?: {
+    level?: 'debug' | 'info' | 'warn' | 'error';
+    directory?: string;
+  };
 }

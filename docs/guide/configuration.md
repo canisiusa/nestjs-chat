@@ -52,9 +52,13 @@ The `database.url` must point to a **dedicated PostgreSQL database** for chat da
 |-------|------|-------------|
 | `url` | `string` | Redis connection string. Format: `redis://[:password@]host:port[/db]` |
 
-Redis is used for two things:
-1. **BullMQ**: job queue for scheduled messages (delayed jobs)
-2. **Socket.IO adapter** (if configured): multi-instance synchronization
+Redis is used internally by the SDK for two things:
+1. **Scheduled messages**: BullMQ job queue for delayed message delivery
+2. **Socket.IO adapter**: multi-instance event synchronization for horizontal scaling
+
+::: info No BullMQ setup required
+The SDK manages BullMQ internally using `bullmq` directly (not `@nestjs/bullmq`). This avoids conflicts with your host application if it also uses BullMQ. You only need to provide the Redis URL — no `BullModule.forRoot()` or any other configuration.
+:::
 
 ```typescript
 redis: {
@@ -103,6 +107,26 @@ limits: {
   maxPollOptions: 20,
 }
 ```
+
+### `logging` (optional)
+
+Winston logging configuration. The SDK writes to both console and file transports.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `level` | `'debug' \| 'info' \| 'warn' \| 'error'` | `'info'` | Minimum log level |
+| `directory` | `string` | `'logs'` | Directory for log files (`chat-errors.log`, `chat-combined.log`) |
+
+```typescript
+logging: {
+  level: 'debug',
+  directory: '/var/log/myapp',
+}
+```
+
+::: info Zero process.env
+The SDK reads **all** its configuration from `ChatModuleOptions`. It never reads `process.env` directly — no `DATABASE_URL`, no `REDIS_URL`, no `NODE_ENV`, no `LOG_DIR`. Everything is explicit and passed by the host.
+:::
 
 ::: info Exceeding limits
 When a limit is reached, the service throws a `ChatException` with the appropriate code (`CHAT_CHANNEL_MEMBER_LIMIT`, `CHAT_CHANNEL_PIN_LIMIT`, etc.) and HTTP status 413.
@@ -344,10 +368,7 @@ Environment variables are used by the **example app** (`apps/example/.env`). Whe
 | `REDIS_URL` | Yes | Redis connection string | - |
 | `JWT_SECRET` | Yes | JWT signing secret for the example auth flow | - |
 | `PORT` | No | HTTP server port | `3001` |
-| `NODE_ENV` | No | Environment (`development`, `production`, `test`) | `development` |
-| `CORS_ORIGINS` | No | CORS origins, separated by commas | `http://localhost:5173` |
-| `SOCKET_PATH` | No | Socket.IO handshake path | `/socket.io` |
-| `LOG_DIR` | No | Log files directory | `logs` |
+| `CORS_ORIGINS` | No | CORS origins for the example app (host handles its own CORS) | `http://localhost:5173` |
 
 ::: warning CHAT_DATABASE_URL vs DATABASE_URL
 The SDK uses `CHAT_DATABASE_URL` for its 11 chat tables. This must point to a **dedicated database**, separate from your application database. The example app uses `DATABASE_URL` for its own User table.

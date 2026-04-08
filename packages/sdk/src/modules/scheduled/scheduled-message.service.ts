@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
@@ -7,15 +6,15 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { MessageService } from '../message/message.service';
 import { ChatException, handleServiceError } from '../../common/exceptions';
 import { ChatScheduledStatus, Prisma } from 'src/generated/prisma/client';
-import { CHAT_QUEUE_NAME } from '../../core/constants';
 import { CreateScheduledMessageDto, UpdateScheduledMessageDto } from './dto';
+import { CHAT_QUEUE_TOKEN } from './scheduled-queue.provider';
 
 @Injectable()
 export class ScheduledMessageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly messageService: MessageService,
-    @InjectQueue(CHAT_QUEUE_NAME) private readonly queue: Queue,
+    @Inject(CHAT_QUEUE_TOKEN) private readonly queue: Queue,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 

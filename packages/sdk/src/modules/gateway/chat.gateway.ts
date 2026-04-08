@@ -34,15 +34,22 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   afterInit(server: Server) {
     // Attach Redis adapter for horizontal scaling
-    // Events emitted on instance 1 are broadcast to all instances via Redis pub/sub
+    // The server from a namespaced gateway is the Namespace, not the Server.
+    // Access the parent server via server.server (Namespace → Server).
     try {
+      const ioServer = (server as any).server ?? server;
+      if (typeof ioServer.adapter !== 'function') {
+        this.logger.warn('Socket.IO Redis adapter: server.adapter not available, skipping');
+        return;
+      }
+
       const pubClient = new Redis(this.options.redis.url);
       const subClient = pubClient.duplicate();
 
       pubClient.on('error', (err) => this.logger.error('Redis pub client error', { error: err.message }));
       subClient.on('error', (err) => this.logger.error('Redis sub client error', { error: err.message }));
 
-      server.adapter(createAdapter(pubClient, subClient, { key: 'chat:socket.io' }) as any);
+      ioServer.adapter(createAdapter(pubClient, subClient, { key: 'chat:socket.io' }) as any);
       this.logger.info('Socket.IO Redis adapter attached for horizontal scaling');
     } catch (error) {
       this.logger.error('Failed to attach Socket.IO Redis adapter, falling back to in-memory', {

@@ -1,5 +1,4 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { LoggerModule } from './common/logger';
 import {
@@ -55,8 +54,8 @@ export class ChatModule {
       global: true,
       imports: [
         PrismaModule,
-        LoggerModule,
-        BullModule.forRoot({ connection: { url: config.redis.url }, prefix: 'chat:bull' }),
+        LoggerModule.register(config.logging),
+
         ...FEATURE_MODULES,
       ],
       providers: [
@@ -77,7 +76,13 @@ export class ChatModule {
     return {
       module: ChatModule,
       global: true,
-      imports: [...(options.imports || []), PrismaModule, LoggerModule, ...FEATURE_MODULES],
+      imports: [
+        ...(options.imports || []),
+        PrismaModule,
+        LoggerModule.register(options.logging),
+
+        ...FEATURE_MODULES,
+      ],
       providers: [
         {
           provide: CHAT_MODULE_OPTIONS,

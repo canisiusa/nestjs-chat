@@ -25,21 +25,40 @@ apps/api/ (your NestJS API)
 
 ## ChatAuthGuard
 
-Wraps your existing JWT guard. Your platform already validates JWTs and attaches the authenticated user to the request — this adapter simply delegates to that guard.
+The auth guard is the entry point for every chat request. Its only job is to **return `true` if the request is authenticated, `false` otherwise**. The chat SDK then calls the `ChatUserExtractor` to read the user from the request.
+
+You have full control over the implementation — delegate to an existing guard, verify a JWT, check a session cookie, call an external auth service, or anything else. The SDK does not care how you authenticate, only that the guard returns a boolean.
+
+::: tip When running as SDK inside a host app
+If your host already has a global auth guard (e.g. Passport `JwtAuthGuard`) that runs before all routes, your chat guard can simply check that the user was attached to the request:
+```typescript
+canActivate(context) {
+  return !!context.switchToHttp().getRequest().user;
+}
+```
+:::
 
 ```typescript
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { IChatAuthGuard } from '@chat-service/sdk';
 
 @Injectable()
 export class ChatAuthGuard implements IChatAuthGuard {
-  constructor(private readonly jwtGuard: JwtAuthGuard) {}
+  canActivate(context: ExecutionContext): boolean | Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Option 1: Check that a global guard already authenticated the user
+    // return !!request.user;
+
+    // Option 2: Delegate to your own guard
+    // return this.myGuard.canActivate(context);
+
+    // Option 3: Verify a JWT manually
+    const token = request.headers.authorization?.replace('Bearer ', '');
+    if (!token) return false;
     try {
-      // JwtAuthGuard validates the token and attaches req.user
-      return await this.jwtGuard.canActivate(context) as boolean;
+      request.user = this.jwtService.verify(token);
+      return true;
     } catch {
       return false;
     }

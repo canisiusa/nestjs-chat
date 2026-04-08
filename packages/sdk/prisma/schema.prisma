@@ -23,6 +23,7 @@ enum ChatMessageType {
   FILE
   ADMIN
   POLL
+  CALL // Message système affiché dans la conversation (ex: "Appel vocal - 3min 42s")
 }
 
 enum ChatMemberRole {
@@ -61,6 +62,36 @@ enum ChatReportCategory {
   OTHER
 }
 
+// Type d'appel : audio uniquement pour l'instant, vidéo prévu pour plus tard
+enum ChatCallType {
+  AUDIO
+  VIDEO
+}
+
+// Cycle de vie d'un appel
+enum ChatCallStatus {
+  RINGING  // En cours de sonnerie, en attente de réponse
+  ONGOING  // Appel en cours (au moins un participant a décroché)
+  ENDED    // Appel terminé normalement
+  MISSED   // Aucun participant n'a décroché avant le timeout
+  REJECTED // L'appelé a explicitement refusé l'appel
+}
+
+// Rôle du participant dans l'appel
+enum ChatCallParticipantRole {
+  CALLER // Celui qui initie l'appel
+  CALLEE // Celui qui reçoit l'appel
+}
+
+// État d'un participant au cours de l'appel
+enum ChatCallParticipantStatus {
+  RINGING  // En attente de réponse
+  JOINED   // A rejoint l'appel (décroché)
+  LEFT     // A quitté l'appel (raccroché)
+  REJECTED // A refusé l'appel
+  MISSED   // N'a pas répondu
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model ChatChannel {
@@ -83,6 +114,7 @@ model ChatChannel {
   messages          ChatMessage[]
   pinnedMessages    ChatPinnedMessage[]
   scheduledMessages ChatScheduledMessage[]
+  calls             ChatCall[]
 
   @@index([tenantId, updatedAt(sort: Desc)])
   @@index([tenantId, type])
@@ -267,6 +299,49 @@ model ChatPollVote {
 
   @@unique([optionId, userId])
   @@index([userId])
+}
+
+// ─── Appels audio/vidéo ─────────────────────────────────────────────────────
+
+// Représente un appel entre utilisateurs (1:1 ou groupe)
+// Le flux audio/vidéo transite en P2P via WebRTC, seule la signalisation passe par le serveur
+model ChatCall {
+  id          String         @id @default(cuid())
+  tenantId    String
+  channelId   String
+  channel     ChatChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  initiatorId String         // L'utilisateur qui a lancé l'appel
+  type        ChatCallType   @default(AUDIO)
+  status      ChatCallStatus @default(RINGING)
+  startedAt   DateTime?      // Horodatage du premier décrochage
+  endedAt     DateTime?      // Horodatage de la fin de l'appel
+  duration    Int?           // Durée en secondes (endedAt - startedAt)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  participants ChatCallParticipant[]
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([tenantId])
+  @@index([initiatorId])
+  @@index([status])
+}
+
+// Participant à un appel, avec son état individuel
+// Permet de suivre qui a décroché, refusé ou manqué l'appel
+model ChatCallParticipant {
+  id       String                    @id @default(cuid())
+  callId   String
+  call     ChatCall                  @relation(fields: [callId], references: [id], onDelete: Cascade)
+  userId   String
+  role     ChatCallParticipantRole   @default(CALLEE)
+  status   ChatCallParticipantStatus @default(RINGING)
+  joinedAt DateTime?                 // Quand le participant a décroché
+  leftAt   DateTime?                 // Quand le participant a raccroché
+
+  @@unique([callId, userId])
+  @@index([userId])
+  @@index([callId, status])
 }
 
 model ChatUserBlock {

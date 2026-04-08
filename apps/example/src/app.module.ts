@@ -29,9 +29,14 @@ class ExamplePrismaModule {}
 
     ExamplePrismaModule,
 
-    ChatModule.forRoot({
-      database: { url: process.env.CHAT_DATABASE_URL || process.env.DATABASE_URL || '' },
-      redis: { url: process.env.REDIS_URL || '' },
+    ChatModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        database: { url: config.get('CHAT_DATABASE_URL') || config.get('DATABASE_URL')! },
+        redis: { url: config.get('REDIS_URL')! },
+        logging: { level: config.get('NODE_ENV') === 'production' ? 'info' : 'debug' },
+      }),
       providers: {
         authGuard: ExampleAuthGuard,
         userExtractor: ExampleUserExtractor,
