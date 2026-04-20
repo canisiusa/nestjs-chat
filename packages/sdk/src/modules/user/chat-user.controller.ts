@@ -32,8 +32,8 @@ export class ChatUserController {
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  getUser(@Param('userId') userId: string) {
-    return this.chatUserService.getUser(userId);
+  getUser(@CurrentChatUser() user: ChatAuthUser, @Param('userId') userId: string) {
+    return this.chatUserService.getUser(userId, user.tenantId);
   }
 
   @Post('block')

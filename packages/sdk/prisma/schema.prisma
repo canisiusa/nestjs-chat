@@ -110,6 +110,10 @@ model ChatChannel {
   updatedAt     DateTime        @updatedAt
   deletedAt     DateTime?
 
+  // For DIRECT channels: tenantId:sortedUserIdA:sortedUserIdB. Null for GROUP.
+  // Enforces "at most one active direct channel per user pair per tenant".
+  directKey     String?         @unique
+
   members           ChatChannelMember[]
   messages          ChatMessage[]
   pinnedMessages    ChatPinnedMessage[]

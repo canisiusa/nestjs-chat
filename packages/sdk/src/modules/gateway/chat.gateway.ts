@@ -16,8 +16,12 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { Redis } from 'ioredis';
 import { ChatSocketEvent } from '../../core/types/chat-socket.types';
 import { CHAT_ROOMS } from '../../core/constants/chat.constants';
-import { CHAT_MODULE_OPTIONS } from '../../core/tokens/injection-tokens';
+import {
+  CHAT_MODULE_OPTIONS,
+  CHAT_USER_EXTRACTOR,
+} from '../../core/tokens/injection-tokens';
 import { ChatModuleOptions } from '../../chat-module-options';
+import { IChatUserExtractor } from '../../core/interfaces/chat-auth.interface';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -30,6 +34,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     @Inject(CHAT_MODULE_OPTIONS) private readonly options: ChatModuleOptions,
+    @Inject(CHAT_USER_EXTRACTOR) private readonly userExtractor: IChatUserExtractor,
   ) {}
 
   afterInit(server: Server) {
@@ -59,22 +64,39 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   handleConnection(client: Socket) {
-    const userId = client.handshake.auth?.userId;
-    const tenantId = client.handshake.auth?.tenantId;
+    const token = client.handshake.auth?.token || this.extractBearer(client.handshake.headers?.authorization);
 
-    if (!userId) {
-      this.logger.warn('Socket connection without userId', { socketId: client.id });
+    const request: any = {
+      headers: {
+        ...(client.handshake.headers || {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+    };
+
+    const user = this.userExtractor.extractUser(request);
+
+    if (!user?.id) {
+      this.logger.warn('Socket connection rejected — no valid auth', { socketId: client.id });
+      client.emit('chat:auth:error', { message: 'Authentication required' });
+      client.disconnect(true);
+      return;
     }
 
-    if (userId) {
-      client.join(CHAT_ROOMS.user(userId));
-    }
-    if (tenantId) {
-      client.join(CHAT_ROOMS.tenant(tenantId));
-    }
+    client.join(CHAT_ROOMS.user(user.id));
+    if (user.tenantId) client.join(CHAT_ROOMS.tenant(user.tenantId));
 
-    client.data = { userId, tenantId };
-    this.logger.info('Socket connected', { socketId: client.id, userId, tenantId });
+    client.data = { userId: user.id, tenantId: user.tenantId };
+    this.logger.info('Socket connected', {
+      socketId: client.id,
+      userId: user.id,
+      tenantId: user.tenantId,
+    });
+  }
+
+  private extractBearer(authHeader: unknown): string | null {
+    if (typeof authHeader !== 'string') return null;
+    const m = authHeader.match(/^Bearer\s+(.+)$/i);
+    return m ? m[1] : null;
   }
 
   handleDisconnect(client: Socket) {

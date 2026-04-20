@@ -8,24 +8,15 @@ export class ExampleAuthGuard implements IChatAuthGuard {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-
-    // Bearer token
     const auth = request.headers.authorization;
     if (auth?.startsWith('Bearer ')) {
       try {
-        const token = auth.replace('Bearer ', '');
-        request.jwtPayload = this.jwtService.verify(token);
+        request.jwtPayload = this.jwtService.verify(auth.slice(7));
         return true;
       } catch {
         return false;
       }
     }
-
-    // Dev fallback: x-user-id header
-    if (request.headers['x-user-id']) {
-      return true;
-    }
-
     return false;
   }
 }

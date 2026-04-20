@@ -205,6 +205,36 @@ export class ScheduledMessageService {
 
       if (!scheduled || scheduled.status !== ChatScheduledStatus.PENDING) return;
 
+      const channel = await this.prisma.chatChannel.findUnique({
+        where: { id: scheduled.channelId, deletedAt: null },
+      });
+      if (!channel) {
+        await this.prisma.chatScheduledMessage.update({
+          where: { id: scheduledMessageId },
+          data: { status: ChatScheduledStatus.FAILED, errorMessage: 'Channel deleted' },
+        });
+        return;
+      }
+
+      const member = await this.prisma.chatChannelMember.findUnique({
+        where: { channelId_userId: { channelId: scheduled.channelId, userId: scheduled.senderId } },
+      });
+      if (!member || member.leftAt || member.isBanned) {
+        await this.prisma.chatScheduledMessage.update({
+          where: { id: scheduledMessageId },
+          data: {
+            status: ChatScheduledStatus.FAILED,
+            errorMessage: 'Sender no longer a channel member',
+          },
+        });
+        this.logger.warn('Scheduled message skipped — sender not a member anymore', {
+          scheduledMessageId,
+          channelId: scheduled.channelId,
+          senderId: scheduled.senderId,
+        });
+        return;
+      }
+
       try {
         const message = await this.messageService.sendTextMessage(
           scheduled.channelId,

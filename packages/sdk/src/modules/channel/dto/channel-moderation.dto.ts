@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, IsIn, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsIn, IsBoolean, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class BanUserDto {
@@ -43,6 +43,7 @@ export class HideChannelDto {
 
 export class ChannelMetadataDto {
   @ApiProperty({ description: 'Key-value metadata to attach to the channel', example: { theme: 'dark', priority: 'high' } })
+  @IsObject()
   metadata: Record<string, string>;
 }
 

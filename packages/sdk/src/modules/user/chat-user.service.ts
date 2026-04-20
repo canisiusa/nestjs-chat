@@ -15,9 +15,9 @@ export class ChatUserService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  async getUser(userId: string) {
+  async getUser(userId: string, tenantId?: string) {
     try {
-      const user = await this.userResolver.getUser(userId);
+      const user = await this.userResolver.getUser(userId, tenantId);
       if (!user) throw ChatException.userNotFound(userId);
 
       const isOnline = this.userResolver.isOnline

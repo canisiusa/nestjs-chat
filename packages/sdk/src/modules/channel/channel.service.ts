@@ -5,6 +5,8 @@ import { ChatException, handleServiceError } from '../../common/exceptions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ChatEventService } from '../gateway/chat-event.service';
 import { ChatSocketEvent } from '../../core/types/chat-socket.types';
+import { CHAT_USER_RESOLVER } from '../../core/tokens/injection-tokens';
+import { IChatUserResolver } from '../../core/interfaces/chat-user-resolver.interface';
 import {
   ChatChannelType,
   ChatMemberRole,
@@ -36,6 +38,7 @@ export class ChannelService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: ChatEventService,
+    @Inject(CHAT_USER_RESOLVER) private readonly userResolver: IChatUserResolver,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -113,45 +116,55 @@ export class ChannelService {
     try {
       const targetUserId = dto.userId;
 
-      const existing = await this.prisma.chatChannel.findFirst({
-        where: {
-          tenantId,
-          type: ChatChannelType.DIRECT,
-          deletedAt: null,
-          AND: [
-            { members: { some: { userId, leftAt: null } } },
-            { members: { some: { userId: targetUserId, leftAt: null } } },
-          ],
-        },
+      const target = await this.userResolver.getUser(targetUserId, tenantId);
+      if (!target) throw ChatException.userNotFound(targetUserId);
+
+      const directKey = this.buildDirectKey(tenantId, userId, targetUserId);
+
+      const existing = await this.prisma.chatChannel.findUnique({
+        where: { directKey },
         include: { members: { where: { leftAt: null } } },
       });
 
-      if (existing) return this.enrichChannel(existing, userId);
+      if (existing && !existing.deletedAt) return this.enrichChannel(existing, userId);
 
-      const channel = await this.prisma.chatChannel.create({
-        data: {
-          tenantId,
-          type: ChatChannelType.DIRECT,
-          createdById: userId,
-          memberCount: 2,
-          members: {
-            create: [
-              { userId, tenantId, role: ChatMemberRole.OPERATOR },
-              { userId: targetUserId, tenantId, role: ChatMemberRole.OPERATOR },
-            ],
+      try {
+        const channel = await this.prisma.chatChannel.create({
+          data: {
+            tenantId,
+            type: ChatChannelType.DIRECT,
+            directKey,
+            createdById: userId,
+            memberCount: 2,
+            members: {
+              create: [
+                { userId, tenantId, role: ChatMemberRole.OPERATOR },
+                { userId: targetUserId, tenantId, role: ChatMemberRole.OPERATOR },
+              ],
+            },
           },
-        },
-        include: { members: true },
-      });
+          include: { members: true },
+        });
 
-      this.logger.info('Direct channel created', {
-        channelId: channel.id,
-        userId,
-        targetUserId,
-        tenantId,
-      });
-      await this.events.notifyChannelCreated(channel, tenantId);
-      return this.enrichChannel(channel, userId);
+        this.logger.info('Direct channel created', {
+          channelId: channel.id,
+          userId,
+          targetUserId,
+          tenantId,
+        });
+        await this.events.notifyChannelCreated(channel, tenantId);
+        return this.enrichChannel(channel, userId);
+      } catch (err: any) {
+        // P2002 = unique constraint violation → someone raced us, return winner
+        if (err?.code === 'P2002') {
+          const winner = await this.prisma.chatChannel.findUnique({
+            where: { directKey },
+            include: { members: { where: { leftAt: null } } },
+          });
+          if (winner) return this.enrichChannel(winner, userId);
+        }
+        throw err;
+      }
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChannelService.createDirectChannel', {
         userId,
@@ -161,6 +174,11 @@ export class ChannelService {
     }
   }
 
+  private buildDirectKey(tenantId: string, a: string, b: string): string {
+    const [x, y] = [a, b].sort();
+    return `${tenantId}:${x}:${y}`;
+  }
+
   async createGroupChannel(userId: string, tenantId: string, dto: CreateGroupChannelDto) {
     try {
       const allUserIds = [...new Set([userId, ...dto.userIds])];
@@ -168,6 +186,11 @@ export class ChannelService {
       if (allUserIds.length > CHAT_DEFAULTS.MAX_CHANNEL_MEMBERS) {
         throw ChatException.memberLimit(CHAT_DEFAULTS.MAX_CHANNEL_MEMBERS);
       }
+
+      const resolved = await this.userResolver.getUsers(allUserIds);
+      const resolvedIds = new Set(resolved.map((u) => u.id));
+      const missing = allUserIds.filter((uid) => !resolvedIds.has(uid));
+      if (missing.length > 0) throw ChatException.userNotFound(missing[0]);
 
       const channel = await this.prisma.chatChannel.create({
         data: {
@@ -296,9 +319,15 @@ export class ChannelService {
         this.events.emitToChannel(channelId, ChatSocketEvent.USER_JOINED, { channelId, userId });
       }
 
-      await this.prisma.chatChannel.update({
+      const updated = await this.prisma.chatChannel.update({
         where: { id: channelId },
         data: { memberCount: { increment: dto.userIds.length } },
+        select: { memberCount: true },
+      });
+
+      this.events.emitToChannel(channelId, ChatSocketEvent.CHANNEL_MEMBER_COUNT_CHANGED, {
+        channelId,
+        memberCount: updated.memberCount,
       });
 
       return this.getChannel(channelId, dto.userIds[0]);
@@ -544,7 +573,7 @@ export class ChannelService {
         where: { channelId_userId: { channelId, userId } },
         data: { isMuted: true },
       });
-      this.events.emitToChannel(channelId, ChatSocketEvent.CHANNEL_MUTED, { channelId });
+      this.events.emitToUser(userId, ChatSocketEvent.CHANNEL_MUTED, { channelId, userId });
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChannelService.muteChannel', {
         channelId,
@@ -559,7 +588,7 @@ export class ChannelService {
         where: { channelId_userId: { channelId, userId } },
         data: { isMuted: false, mutedUntil: null },
       });
-      this.events.emitToChannel(channelId, ChatSocketEvent.CHANNEL_UNMUTED, { channelId });
+      this.events.emitToUser(userId, ChatSocketEvent.CHANNEL_UNMUTED, { channelId, userId });
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChannelService.unmuteChannel', {
         channelId,
@@ -707,7 +736,7 @@ export class ChannelService {
           ...(dto.hidePreviousMessages ? { historyResetAt: new Date() } : {}),
         },
       });
-      this.events.emitToUser(userId, ChatSocketEvent.CHANNEL_HIDDEN, { channelId });
+      this.events.emitToUser(userId, ChatSocketEvent.CHANNEL_HIDDEN, { channelId, userId });
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChannelService.hideChannel', {
         channelId,
@@ -722,6 +751,7 @@ export class ChannelService {
         where: { channelId_userId: { channelId, userId } },
         data: { isHidden: false, hidePrevMessages: false },
       });
+      this.events.emitToUser(userId, ChatSocketEvent.CHANNEL_UNHIDDEN, { channelId, userId });
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChannelService.unhideChannel', {
         channelId,
@@ -894,7 +924,7 @@ export class ChannelService {
         data: {
           tenantId,
           reporterId,
-          category: dto.category as ChatReportCategory,
+          category: dto.category.toUpperCase() as ChatReportCategory,
           description: dto.description,
           targetType: 'channel',
           targetId: channelId,
@@ -916,7 +946,7 @@ export class ChannelService {
         data: {
           tenantId,
           reporterId,
-          category: dto.category as ChatReportCategory,
+          category: dto.category.toUpperCase() as ChatReportCategory,
           description: dto.description,
           targetType: 'user',
           targetId: targetUserId,

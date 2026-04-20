@@ -6,9 +6,10 @@ import { PrismaService } from '../prisma.service';
 export class ExampleUserResolver implements IChatUserResolver {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUser(userId: string): Promise<ChatUser | null> {
+  async getUser(userId: string, tenantId?: string): Promise<ChatUser | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) return null;
+    if (tenantId && user.organizationId !== tenantId) return null;
     return this.mapUser(user);
   }
 

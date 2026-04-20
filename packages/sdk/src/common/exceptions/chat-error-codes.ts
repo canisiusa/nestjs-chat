@@ -70,6 +70,7 @@ export const ERROR_HTTP_STATUS: Record<string, number> = {
   [ChatErrorCode.USER_MUTED]: 403,
   [ChatErrorCode.USER_BANNED]: 403,
   [ChatErrorCode.CHANNEL_FROZEN]: 403,
+  [ChatErrorCode.MESSAGE_NOT_OWNER]: 403,
 
   // 404
   [ChatErrorCode.CHANNEL_NOT_FOUND]: 404,

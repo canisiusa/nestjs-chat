@@ -32,6 +32,7 @@ export enum ChatSocketEvent {
   CHANNEL_UNMUTED = 'chat:channel:unmuted',
   METADATA_CHANGED = 'chat:metadata:changed',
   CHANNEL_HIDDEN = 'chat:channel:hidden',
+  CHANNEL_UNHIDDEN = 'chat:channel:unhidden',
   CHANNEL_MEMBER_COUNT_CHANGED = 'chat:channel:member:count:changed',
 
   // Server → Client: Moderation

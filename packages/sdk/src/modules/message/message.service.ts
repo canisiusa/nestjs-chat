@@ -29,10 +29,17 @@ export class MessageService {
     try {
       const memberFilter = await this.getMemberHistoryFilter(channelId, userId);
 
+      const blocked = await this.prisma.chatUserBlock.findMany({
+        where: { blockerId: userId },
+        select: { blockedId: true },
+      });
+      const blockedIds = blocked.map((b) => b.blockedId);
+
       const where: Prisma.ChatMessageWhereInput = {
         channelId,
         deletedAt: null,
         ...memberFilter,
+        ...(blockedIds.length ? { senderId: { notIn: blockedIds } } : {}),
       };
 
       const createdAtFilter: Prisma.DateTimeFilter = {};
@@ -324,6 +331,20 @@ export class MessageService {
       });
       if (!targetMember || targetMember.leftAt || targetMember.isBanned) {
         throw ChatException.notChannelMember();
+      }
+      if (
+        targetMember.isMuted &&
+        (!targetMember.mutedUntil || new Date(targetMember.mutedUntil) > new Date())
+      ) {
+        throw ChatException.userMuted();
+      }
+
+      const targetChannel = await this.prisma.chatChannel.findUnique({
+        where: { id: dto.targetChannelId, deletedAt: null },
+      });
+      if (!targetChannel) throw ChatException.channelNotFound(dto.targetChannelId);
+      if (targetChannel.isFrozen && targetMember.role !== 'OPERATOR') {
+        throw ChatException.channelFrozen();
       }
 
       const forwarded = await this.prisma.chatMessage.create({
