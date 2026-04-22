@@ -1,14 +1,10 @@
 # Backend Integration
 
-This guide explains how to integrate the Chat Service SDK into any NestJS backend application. The SDK is distributed as `nestjs-chat` — a NestJS dynamic module that you install, import via `ChatModule.forRoot()`, and extend with your own authentication, user resolution, and storage logic.
-
-::: tip Working example
-The `apps/example/` directory contains a complete, runnable integration example with real JWT authentication, a user database, and seed data. Use it as a reference alongside this guide.
-:::
+This guide is the deep-dive reference for integrating [`nestjs-chat`](https://www.npmjs.com/package/nestjs-chat) into your NestJS backend. For a fast-path install walkthrough, see [Getting Started](/guide/getting-started).
 
 ## Overview
 
-Install `nestjs-chat` and import `ChatModule.forRoot()` into your NestJS application. You provide implementations of **3 required interfaces** and **2 optional ones** — the SDK handles everything else: database (Prisma + PostgreSQL), WebSocket gateway (Socket.IO), job queues (BullMQ + Redis), and all business logic (channels, messages, polls, scheduled messages).
+Install `nestjs-chat` from npm and import `ChatModule.forRoot()` into your NestJS application. You provide implementations of **3 required interfaces** and **2 optional ones** — the SDK handles everything else: database (Prisma + PostgreSQL), WebSocket gateway (Socket.IO), job queues (BullMQ + Redis), and all business logic (channels, messages, polls, scheduled messages).
 
 ```
 Your NestJS App
@@ -30,23 +26,16 @@ Every operation is scoped by `tenantId`. The SDK never leaks data across tenants
 
 ## Step 1: Install the SDK
 
-### Option A: Workspace dependency (monorepo)
-
-If your project is in the same monorepo or you link the package locally:
-
-```json
-// package.json
-{
-  "dependencies": {
-    "nestjs-chat": "workspace:*"
-  }
-}
-```
-
-### Option B: npm package
-
 ```bash
 pnpm add nestjs-chat
+# or: npm install nestjs-chat
+# or: yarn add nestjs-chat
+```
+
+Peer dependencies (install the ones you don't already have):
+
+```bash
+pnpm add @nestjs/common @nestjs/core class-transformer class-validator reflect-metadata rxjs
 ```
 
 ### Apply the chat database schema
@@ -132,7 +121,7 @@ export class MyAuthGuard implements IChatAuthGuard {
 The guard must attach the decoded user to `request.user` (or a similar property) so that the `IChatUserExtractor` can read it in the next step.
 :::
 
-See also: `apps/example/src/providers/example-auth.guard.ts` for a working implementation.
+Reference implementation in the repo: [`apps/example/src/providers/example-auth.guard.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-auth.guard.ts).
 
 ---
 
@@ -183,7 +172,7 @@ export class MyUserExtractor implements IChatUserExtractor {
 The `tenantId` field is critical. It scopes all chat data (channels, messages, members) to a single tenant. Map it from whatever your JWT uses (e.g. `organizationId`, `companyId`, `workspaceId`). If your app is not multi-tenant, use a fixed value (e.g., `'default'`).
 :::
 
-See also: `apps/example/src/providers/example-user-extractor.ts` for a working implementation.
+Reference implementation in the repo: [`apps/example/src/providers/example-user-extractor.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-user-extractor.ts).
 
 ---
 
@@ -275,7 +264,7 @@ export class MyUserResolver implements IChatUserResolver {
 The `isOnline` method is optional (note the `?` in the interface). If not implemented, online status falls back to Socket.IO connection tracking.
 :::
 
-See also: `apps/example/src/providers/example-user-resolver.ts` for a working implementation.
+Reference implementation in the repo: [`apps/example/src/providers/example-user-resolver.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-user-resolver.ts).
 
 ---
 
@@ -527,26 +516,24 @@ The `providers` object is passed at registration time (not inside `useFactory`) 
 
 ---
 
-## Reference: Example App
+## Reference: example app in the repo
 
-The `apps/example/` directory is a complete, runnable integration that demonstrates all the concepts above. It includes:
+The [`apps/example/`](https://github.com/canisiusa/nestjs-chat/tree/main/apps/example) folder in the GitHub repo contains a complete, runnable integration that demonstrates every concept above. It has real JWT auth, a User table, seeded test users, and wires up all three required providers. Good file-by-file starting points:
 
 | File | Description |
 |------|-------------|
-| `apps/example/src/app.module.ts` | Imports `ChatModule.forRoot()` with real providers |
-| `apps/example/src/main.ts` | NestJS bootstrap with Swagger docs |
-| `apps/example/src/auth.controller.ts` | `POST /chat/auth/login` and `/chat/auth/register` with JWT |
-| `apps/example/src/providers/example-auth.guard.ts` | `IChatAuthGuard` implementation using JWT |
-| `apps/example/src/providers/example-user-extractor.ts` | `IChatUserExtractor` implementation |
-| `apps/example/src/providers/example-user-resolver.ts` | `IChatUserResolver` implementation querying the User table |
-| `apps/example/src/prisma.service.ts` | Prisma service for the example's User database |
-| `apps/example/src/seed.ts` | Seeds 5 test users (alice, bob, charlie, diana, eve) |
-| `apps/example/prisma/schema.prisma` | User schema (example's own database) |
+| [`src/app.module.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/app.module.ts) | Imports `ChatModule.forRootAsync()` with real providers |
+| [`src/main.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/main.ts) | NestJS bootstrap with CORS + Swagger |
+| [`src/auth.controller.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/auth.controller.ts) | `POST /auth/login` and `/auth/register` with JWT |
+| [`src/providers/example-auth.guard.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-auth.guard.ts) | `IChatAuthGuard` implementation |
+| [`src/providers/example-user-extractor.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-user-extractor.ts) | `IChatUserExtractor` implementation |
+| [`src/providers/example-user-resolver.ts`](https://github.com/canisiusa/nestjs-chat/blob/main/apps/example/src/providers/example-user-resolver.ts) | `IChatUserResolver` implementation |
 
-To run it:
+To run the example locally (clone the repo, not the npm package):
 
 ```bash
-# From the monorepo root
+git clone https://github.com/canisiusa/nestjs-chat.git
+cd nestjs-chat
 pnpm install
 cp apps/example/.env.example apps/example/.env
 # Edit .env with your CHAT_DATABASE_URL, DATABASE_URL, REDIS_URL, JWT_SECRET
@@ -557,6 +544,7 @@ cd apps/example && pnpm seed && cd ../..
 pnpm dev
 
 # Login: POST http://localhost:3001/chat/auth/login
-# Body: { "email": "alice@example.com", "password": "password123" }
-# Use the returned JWT token in Authorization: Bearer <token>
+# Body: { "email": "alice@example.com", "password": "password" }
 ```
+
+See also the repo's [`CONTRIBUTING.md`](https://github.com/canisiusa/nestjs-chat/blob/main/CONTRIBUTING.md) for the full contributor workflow.

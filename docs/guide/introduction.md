@@ -1,37 +1,25 @@
 ---
 title: Introduction
-description: Overview of the Chat Service SDK — a real-time chat module for NestJS applications.
+description: Overview of nestjs-chat — a real-time chat SDK for NestJS, shipped as an npm package.
 ---
 
 # Introduction
 
-## What is the Chat Service?
+## What is `nestjs-chat`?
 
-The Chat Service is a **real-time chat SDK for NestJS**. It provides a complete API (REST + WebSocket) to integrate real-time chat into any NestJS project, while maintaining full control over data and infrastructure.
+[`nestjs-chat`](https://www.npmjs.com/package/nestjs-chat) is a **real-time chat SDK for NestJS**, distributed as a regular npm package. You install it into your existing NestJS backend, import `ChatModule.forRoot()`, provide a few host-side implementations (auth, user lookup, optionally storage), and get a full REST + WebSocket chat API — channels, messages, polls, scheduled messages, reactions, moderation, the lot.
 
-The SDK is distributed as `nestjs-chat` — a NestJS dynamic module that you install and import via `ChatModule.forRoot()`. There is no standalone application to run; it integrates directly into your existing NestJS backend.
+There's no separate server to run and no hosted service. The SDK lives inside your NestJS process, alongside your own controllers.
 
-::: tip Why a self-hosted SDK?
-SaaS solutions charge per message or per active user. With the Chat Service SDK, you only pay for your PostgreSQL + Redis infrastructure. No external dependencies, no artificial limits.
+::: tip Why self-host?
+SaaS chat services charge per message or per MAU. With `nestjs-chat` you only pay for your PostgreSQL and Redis. No seat limits, no message caps, no vendor lock-in — it's MIT-licensed and runs wherever your NestJS app runs.
 :::
 
-## Architecture: SDK/Plugin Pattern
-
-The Chat Service follows an **SDK/Plugin pattern**: the main `ChatModule` is imported into your NestJS backend via `ChatModule.forRoot()` or `ChatModule.forRootAsync()`.
-
-The host application provides its own implementations for:
-
-| Interface | Role | Required |
-|-----------|------|:--------:|
-| `IChatAuthGuard` | Validates authentication for HTTP and WebSocket requests | Yes |
-| `IChatUserExtractor` | Extracts the current user from the request | Yes |
-| `IChatUserResolver` | Resolves user profiles (name, avatar, online status) | Yes |
-| `IChatStorageProvider` | File upload/deletion (S3, GCS, local...) | No |
-| `IChatEventHandler` | Hooks on events (push notifications, analytics...) | No |
+## How it fits together
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    HOST APP (NestJS)                 │
+│                  YOUR NestJS APP                    │
 │                                                     │
 │  ┌─────────────┐  ┌──────────────┐  ┌────────────┐ │
 │  │ AuthGuard   │  │ UserResolver │  │  Storage   │ │
@@ -39,7 +27,7 @@ The host application provides its own implementations for:
 │  └──────┬──────┘  └──────┬───────┘  └─────┬──────┘ │
 │         │                │                 │        │
 │  ┌──────▼────────────────▼─────────────────▼──────┐ │
-│  │              ChatModule.forRoot()              │ │
+│  │           ChatModule.forRoot({...})            │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌────────────────┐ │ │
 │  │  │ Channels │ │ Messages │ │ Polls/Scheduled│ │ │
 │  │  └──────────┘ └──────────┘ └────────────────┘ │ │
@@ -51,88 +39,55 @@ The host application provides its own implementations for:
 └─────────────────────────────────────────────────────┘
 ```
 
-## Monorepo Structure
+## What you bring
 
-The project is organized as a pnpm monorepo:
+Three required providers, two optional ones:
 
-| Package | Path | Description |
-|---------|------|-------------|
-| `nestjs-chat` | `packages/sdk/` | The NestJS SDK module — `ChatModule.forRoot()` |
-| `@chat-service/client` | `packages/client/` | Frontend React provider |
-| Example App | `apps/example/` | Working integration example with real JWT auth |
+| Interface | Role | Required |
+|-----------|------|:--------:|
+| `IChatAuthGuard` | Validates the caller (JWT, session cookie, API key...) for HTTP + WebSocket. | Yes |
+| `IChatUserExtractor` | Pulls `{ id, tenantId }` out of the request after the guard has run. | Yes |
+| `IChatUserResolver` | Looks up user profiles by id (name, avatar, online status) in **your** user database. | Yes |
+| `IChatStorageProvider` | Uploads message attachments to S3/GCS/local disk/etc. | No |
+| `IChatEventHandler` | Observes chat events (e.g. to send push notifications or webhooks). | No |
 
-The SDK (`packages/sdk/`) is a **library** — it has no `app.module.ts` and no `main.ts`. It exports `ChatModule` which you import into your own NestJS application.
+Full shapes and examples: [Configuration](/guide/configuration).
 
-The example app (`apps/example/`) demonstrates a complete integration: real JWT authentication, a user database, seed data, and all required provider implementations.
+## What the SDK brings
 
-## Tech Stack
+**Chat features**
 
-| Technology | Version | Role |
-|------------|---------|------|
-| **NestJS** | 10 | Application framework |
-| **Prisma** | 7 | ORM (PostgreSQL) |
-| **PostgreSQL** | 15+ | Relational database |
-| **Socket.IO** | 4 | Real-time WebSocket |
-| **BullMQ** | 5 | Scheduled messages (delayed jobs) |
-| **Redis** | 7+ | Cache + BullMQ queue |
-| **Winston** | 3 | Structured logging (console + files) |
+- **Channels** — 1-on-1 direct messages with automatic deduplication per tenant, group channels with member cap, key/value metadata, custom types, freeze, hide, reset-history.
+- **Messages** — text / image / video / audio / file, threading, forwarding, full-text search, edit + soft delete, mentions.
+- **Real-time** — typing indicators, read receipts via `lastReadAt`, per-user unread counts, delivered receipts, presence (if your resolver implements `isOnline`).
+- **Reactions** — emoji reactions per-user per-message, real-time add/remove.
+- **Polls** — single or multi-vote, scheduled close, optional user-suggested options.
+- **Scheduled messages** — delayed send backed by BullMQ; edit/cancel/send-now before the deadline.
+- **Moderation** — channel freeze/unfreeze, per-user timed mute + ban, global user block, reporting.
+- **Preferences** — per-channel push triggers and unread-count visibility.
 
-## Features
+**Infrastructure**
 
-### Channels
-- **Direct Messages** (1:1) with automatic deduplication
-- **Group channels** with multiple members
-- Customizable key-value metadata
-- Custom types to categorize channels
-- Freeze/unfreeze for moderation
-- Hide/show with history reset
+| Component | Version | Role |
+|-----------|---------|------|
+| NestJS | 10 | Host framework |
+| Prisma | 7 | ORM — 11 models, bundled migrations applied via `chat-migrate` CLI |
+| PostgreSQL | 15+ | Primary datastore for chat data |
+| Socket.IO | 4 | Real-time gateway |
+| Redis adapter | — | Multi-instance fan-out for Socket.IO |
+| BullMQ | 5 | Delayed job queue for scheduled messages |
+| Redis | 7+ | BullMQ backend + Socket.IO adapter |
+| Winston | 3 | Structured logging (console + rotating file) |
 
-### Messages
-- Text, images, videos, audio, files
-- Threading (nested replies)
-- Message forwarding
-- Full-text search
-- Edit and delete (soft delete)
-- User mentions
-
-### Real-time
-- Typing indicators (ephemeral, no persistence)
-- Read receipts via `lastReadAt` cursor
-- Unread count per channel/user
-- Delivered receipts
-
-### Reactions
-- Emojis on messages
-- Real-time add/remove
-
-### Polls
-- Creation with multiple options
-- Single or multi-vote
-- Automatic scheduled closing
-- Option suggestions by users
-
-### Scheduled Messages
-- Scheduling via BullMQ (delayed jobs)
-- Modification before sending
-- Cancellation
-- Forced immediate send
-
-### Moderation
-- Mute/unmute with optional duration
-- Ban/unban with description
-- Global block between users
-- Reporting (spam, harassment, inappropriate content)
-
-### Notifications
-- Configurable push trigger per channel (ALL, MENTION_ONLY, OFF)
-- Configurable count preference (ALL, UNREAD_MESSAGE_COUNT_ONLY, OFF)
-
-## By the Numbers
+## At a glance
 
 | Metric | Value |
 |--------|-------|
-| REST Endpoints | **63** |
-| WebSocket Events | **42** |
-| Prisma Models | **11** |
-| Error Codes | **30** |
-| NestJS Modules | **6** (Channel, Message, Poll, User, Scheduled, Gateway) |
+| REST endpoints | **63** |
+| WebSocket events | **42** |
+| Prisma models | **11** |
+| Error codes | **30** |
+| Internal modules | **6** (Channel, Message, Poll, User, Scheduled, Gateway) |
+| License | MIT |
+
+Next: [Getting Started](/guide/getting-started) to install and run.
