@@ -45,6 +45,9 @@ jobs:
             exit 1
           fi
 
+      - name: Generate Prisma client
+        run: pnpm --filter nestjs-chat prisma:generate
+
       - name: Lint + typecheck + test
         run: |
           pnpm -r lint
