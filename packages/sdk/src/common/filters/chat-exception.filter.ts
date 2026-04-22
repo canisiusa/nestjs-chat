@@ -76,14 +76,15 @@ export class ChatExceptionFilter implements ExceptionFilter {
       path: request.url,
     };
 
-    if (exception instanceof ChatException) {
+    if (exception instanceof ChatException || this.looksLikeChatException(exception)) {
+      const ex = exception as ChatException;
       return {
         ...base,
-        statusCode: exception.getStatus(),
+        statusCode: ex.getStatus(),
         error: {
-          code: exception.code,
-          message: exception.message,
-          details: exception.details,
+          code: ex.code,
+          message: ex.message,
+          details: ex.details,
         },
       };
     }
@@ -92,9 +93,13 @@ export class ChatExceptionFilter implements ExceptionFilter {
       return { ...base, ...this.handlePrismaError(exception) };
     }
 
-    if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      const exResponse = exception.getResponse();
+    // Duck-typing rather than `instanceof HttpException` — two copies of
+    // @nestjs/common in the dependency graph (different class-validator peer
+    // ranges) break the `instanceof` check across that boundary.
+    if (exception instanceof HttpException || this.looksLikeHttpException(exception)) {
+      const ex = exception as HttpException;
+      const status = ex.getStatus();
+      const exResponse = ex.getResponse();
       const message = typeof exResponse === 'string' ? exResponse : (exResponse as any).message;
 
       return {
@@ -168,6 +173,25 @@ export class ChatExceptionFilter implements ExceptionFilter {
           },
         };
     }
+  }
+
+  private looksLikeChatException(exception: unknown): boolean {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      typeof (exception as any).code === 'string' &&
+      (exception as any).code.startsWith('CHAT_') &&
+      typeof (exception as any).getStatus === 'function'
+    );
+  }
+
+  private looksLikeHttpException(exception: unknown): boolean {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      typeof (exception as any).getStatus === 'function' &&
+      typeof (exception as any).getResponse === 'function'
+    );
   }
 
   private httpStatusToCode(status: number): string {
