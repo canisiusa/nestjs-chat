@@ -1,0 +1,88 @@
+name: PR lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate PR title, branch name, and description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title (Conventional Commits)
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            chore
+            docs
+            test
+            ci
+            refactor
+            perf
+            style
+            build
+            revert
+          requireScope: false
+          subjectPattern: ^[a-z].+[^.]$
+          subjectPatternError: |
+            The subject "{subject}" must start with a lowercase letter and must not end with a period.
+            Examples:
+              - feat(channel): add pin limit enforcement
+              - fix(auth): reject tokens with missing tenantId
+
+      - name: Validate branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          # Dependabot branches are created by the bot — they don't follow our convention and we shouldn't fail on them
+          if [[ "$BRANCH" =~ ^dependabot/ ]]; then
+            echo "Dependabot branch, skipping check: $BRANCH"
+            exit 0
+          fi
+          # Expected format: <type>/<slug>
+          # <type> must be one of the conventional commit types
+          # <slug> is lowercase letters, digits, hyphens, dots, underscores, slashes
+          if [[ ! "$BRANCH" =~ ^(feat|fix|chore|docs|test|ci|refactor|perf|style|build|revert)/[a-z0-9._/-]+$ ]]; then
+            echo "::error::Branch name '$BRANCH' does not match the required pattern."
+            echo "::error::Expected: <type>/<slug>  where <type> is one of: feat, fix, chore, docs, test, ci, refactor, perf, style, build, revert"
+            echo "::error::Slug must be lowercase letters, digits, dots, hyphens, underscores or slashes."
+            echo "::error::Examples: feat/add-reactions, fix/exception-filter, chore/bump-0.1.1"
+            exit 1
+          fi
+          echo "Branch name OK: $BRANCH"
+
+      - name: Validate PR description has required sections
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          missing=()
+          # Each required section is a Markdown H2 heading — we accept any content under it
+          # Using grep -E -m1 for speed, -i for case-insensitive
+          check_section() {
+            local heading="$1"
+            if ! echo "$BODY" | grep -E -qi "^##\s+${heading}\b"; then
+              missing+=("$heading")
+            fi
+          }
+
+          check_section "Summary"
+          check_section "Testing"
+          check_section "Breaking changes"
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::PR description is missing required section(s): ${missing[*]}"
+            echo "::error::Please include the following H2 headings in the PR description:"
+            for section in "${missing[@]}"; do
+              echo "::error::  ## $section"
+            done
+            echo "::error::See .github/pull_request_template.md for the full template."
+            exit 1
+          fi
+          echo "PR description has all required sections."

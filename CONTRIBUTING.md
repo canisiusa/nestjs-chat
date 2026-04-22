@@ -35,7 +35,7 @@ pnpm dev
 
 ## Making a change
 
-1. Create a branch off `main`: `git checkout -b feat/my-change`
+1. Create a branch off `main` following the naming convention (see below): `git checkout -b feat/my-change`
 2. Make your change — keep PRs focused and small when possible.
 3. Add or update tests under `packages/sdk/src/**/*.spec.ts`.
 4. Update docs in `docs/` if the change affects public APIs.
@@ -50,14 +50,43 @@ pnpm dev
 
 6. Open a pull request. CI must pass before merge.
 
-## Commit messages
+## Branch names
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/). Examples:
+Branches must follow `<type>/<slug>` where `<type>` is one of the Conventional Commit types (see below) and `<slug>` is lowercase letters, digits, dots, hyphens, underscores, or slashes.
+
+Valid:
+
+- `feat/add-reactions`
+- `fix/exception-filter`
+- `chore/bump-0.1.1`
+- `docs/update-backend-guide`
+
+Invalid: `my-branch`, `Feature/Add-Reactions`, `fixstuff`.
+
+Dependabot branches are auto-exempt.
+
+## Pull request titles and descriptions
+
+**Titles** must follow [Conventional Commits](https://www.conventionalcommits.org/). Valid types: `feat`, `fix`, `chore`, `docs`, `test`, `ci`, `refactor`, `perf`, `style`, `build`, `revert`. Scope is optional. The subject must start with a lowercase letter and must not end with a period.
+
+Valid:
 
 - `feat(channel): add pin limit enforcement`
 - `fix(auth): reject tokens with missing tenantId`
 - `docs(readme): document forRootAsync options`
 - `chore(deps): bump @nestjs/core to 10.4.16`
+
+**Descriptions** must include these H2 sections (see `.github/pull_request_template.md` — opening a PR pre-fills it):
+
+- `## Summary` — what + why
+- `## Testing` — how you verified the change
+- `## Breaking changes` — migration path, or `None`
+
+The `PR lint` CI check enforces all three rules (title, branch, description) and blocks merging if any fails.
+
+## Commit messages
+
+Same Conventional Commit types as PR titles. Individual commits inside a branch don't need to be squeaky-clean — we squash-merge, so only the PR title lands on `main`.
 
 ## Tests
 
