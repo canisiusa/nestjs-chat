@@ -2,7 +2,7 @@
 CREATE TYPE "ChatChannelType" AS ENUM ('DIRECT', 'GROUP');
 
 -- CreateEnum
-CREATE TYPE "ChatMessageType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'ADMIN', 'POLL');
+CREATE TYPE "ChatMessageType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'ADMIN', 'POLL', 'CALL');
 
 -- CreateEnum
 CREATE TYPE "ChatMemberRole" AS ENUM ('OPERATOR', 'MEMBER');
@@ -22,6 +22,18 @@ CREATE TYPE "ChatPollStatus" AS ENUM ('OPEN', 'CLOSED');
 -- CreateEnum
 CREATE TYPE "ChatReportCategory" AS ENUM ('SPAM', 'HARASSMENT', 'INAPPROPRIATE', 'OTHER');
 
+-- CreateEnum
+CREATE TYPE "ChatCallType" AS ENUM ('AUDIO', 'VIDEO');
+
+-- CreateEnum
+CREATE TYPE "ChatCallStatus" AS ENUM ('RINGING', 'ONGOING', 'ENDED', 'MISSED', 'REJECTED');
+
+-- CreateEnum
+CREATE TYPE "ChatCallParticipantRole" AS ENUM ('CALLER', 'CALLEE');
+
+-- CreateEnum
+CREATE TYPE "ChatCallParticipantStatus" AS ENUM ('RINGING', 'JOINED', 'LEFT', 'REJECTED', 'MISSED');
+
 -- CreateTable
 CREATE TABLE "ChatChannel" (
     "id" TEXT NOT NULL,
@@ -38,6 +50,7 @@ CREATE TABLE "ChatChannel" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
+    "directKey" TEXT,
 
     CONSTRAINT "ChatChannel_pkey" PRIMARY KEY ("id")
 );
@@ -187,6 +200,36 @@ CREATE TABLE "ChatPollVote" (
 );
 
 -- CreateTable
+CREATE TABLE "ChatCall" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "initiatorId" TEXT NOT NULL,
+    "type" "ChatCallType" NOT NULL DEFAULT 'AUDIO',
+    "status" "ChatCallStatus" NOT NULL DEFAULT 'RINGING',
+    "startedAt" TIMESTAMP(3),
+    "endedAt" TIMESTAMP(3),
+    "duration" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ChatCall_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChatCallParticipant" (
+    "id" TEXT NOT NULL,
+    "callId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "role" "ChatCallParticipantRole" NOT NULL DEFAULT 'CALLEE',
+    "status" "ChatCallParticipantStatus" NOT NULL DEFAULT 'RINGING',
+    "joinedAt" TIMESTAMP(3),
+    "leftAt" TIMESTAMP(3),
+
+    CONSTRAINT "ChatCallParticipant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ChatUserBlock" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -211,6 +254,9 @@ CREATE TABLE "ChatReport" (
 
     CONSTRAINT "ChatReport_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChatChannel_directKey_key" ON "ChatChannel"("directKey");
 
 -- CreateIndex
 CREATE INDEX "ChatChannel_tenantId_updatedAt_idx" ON "ChatChannel"("tenantId", "updatedAt" DESC);
@@ -288,6 +334,27 @@ CREATE INDEX "ChatPollVote_userId_idx" ON "ChatPollVote"("userId");
 CREATE UNIQUE INDEX "ChatPollVote_optionId_userId_key" ON "ChatPollVote"("optionId", "userId");
 
 -- CreateIndex
+CREATE INDEX "ChatCall_channelId_createdAt_idx" ON "ChatCall"("channelId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "ChatCall_tenantId_idx" ON "ChatCall"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "ChatCall_initiatorId_idx" ON "ChatCall"("initiatorId");
+
+-- CreateIndex
+CREATE INDEX "ChatCall_status_idx" ON "ChatCall"("status");
+
+-- CreateIndex
+CREATE INDEX "ChatCallParticipant_userId_idx" ON "ChatCallParticipant"("userId");
+
+-- CreateIndex
+CREATE INDEX "ChatCallParticipant_callId_status_idx" ON "ChatCallParticipant"("callId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChatCallParticipant_callId_userId_key" ON "ChatCallParticipant"("callId", "userId");
+
+-- CreateIndex
 CREATE INDEX "ChatUserBlock_blockerId_tenantId_idx" ON "ChatUserBlock"("blockerId", "tenantId");
 
 -- CreateIndex
@@ -322,3 +389,9 @@ ALTER TABLE "ChatPollOption" ADD CONSTRAINT "ChatPollOption_pollId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "ChatPollVote" ADD CONSTRAINT "ChatPollVote_optionId_fkey" FOREIGN KEY ("optionId") REFERENCES "ChatPollOption"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatCall" ADD CONSTRAINT "ChatCall_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "ChatChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatCallParticipant" ADD CONSTRAINT "ChatCallParticipant_callId_fkey" FOREIGN KEY ("callId") REFERENCES "ChatCall"("id") ON DELETE CASCADE ON UPDATE CASCADE;
