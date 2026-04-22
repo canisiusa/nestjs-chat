@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`ChatExceptionFilter` now auto-registered by `ChatModule`.** Previously the filter lived in `packages/sdk/src/common/filters/` but was never wired up. Integrators could throw `ChatException` subclasses and get HTTP 500 responses with "Internal server error" instead of the mapped status + `code`. The filter is now provided via `APP_FILTER` from both `forRoot` and `forRootAsync`.
+- **Exception filter uses duck-typing instead of `instanceof`** for `ChatException` and `HttpException`. Monorepos with multiple `@nestjs/common` versions in the dependency graph (different `class-validator` peer ranges) broke the `instanceof` check across that boundary — validation errors from NestJS appeared as HTTP 500 even though they extended `BadRequestException`. Now we detect exception shape by presence of `getStatus()` + `getResponse()` / `code.startsWith('CHAT_')`.
+
+### Added
+
+- **E2E test suite committed to the repo** under `packages/sdk/test/e2e/` (4 scripts, 199/199 PASS). New npm scripts: `test:e2e`, `test:e2e:golden`, `test:e2e:extended`, `test:e2e:hardening`, `test:e2e:concurrency`. Requires Postgres + Redis + seeded example app running on `:3001`.
+
 ## [0.2.0] — 2026-04-20
 
 Security, multi-tenancy, and event-scoping hardening pass. Driven by exhaustive E2E testing (200+ assertions across golden path, authz, tenant isolation, Socket.IO events, and concurrency suites) that surfaced 14 real bugs, all fixed.
