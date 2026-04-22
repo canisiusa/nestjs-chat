@@ -20,7 +20,7 @@ export class ScheduledMessageService {
 
   async getScheduledMessages(channelId: string, senderId: string) {
     try {
-      return this.prisma.chatScheduledMessage.findMany({
+      return await this.prisma.chatScheduledMessage.findMany({
         where: { channelId, senderId, status: ChatScheduledStatus.PENDING },
         orderBy: { scheduledAt: 'asc' },
       });
@@ -186,7 +186,7 @@ export class ScheduledMessageService {
         throw ChatException.scheduledAlreadySent();
 
       await this.queue.remove(`scheduled-${scheduledId}`);
-      return this.processScheduledMessage(scheduledId);
+      return await this.processScheduledMessage(scheduledId);
     } catch (error) {
       throw handleServiceError(
         error,
