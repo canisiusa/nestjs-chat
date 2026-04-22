@@ -17,8 +17,9 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: '/guide/introduction' },
           { text: 'Getting Started', link: '/guide/getting-started' },
-          { text: 'Architecture', link: '/guide/architecture' },
           { text: 'Configuration', link: '/guide/configuration' },
+          { text: 'Architecture', link: '/guide/architecture' },
+          { text: 'Contributing / Local Dev', link: '/guide/contributing' },
         ],
       },
       {

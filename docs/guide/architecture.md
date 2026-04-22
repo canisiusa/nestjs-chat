@@ -1,88 +1,55 @@
 ---
 title: Architecture
-description: Technical architecture of the Chat Service SDK — monorepo structure, modules, error handling, logging.
+description: How nestjs-chat is structured internally — modules, providers, error handling, logging, and the chat database schema.
 ---
 
 # Architecture
 
-## Monorepo Structure
+This page describes how `nestjs-chat` is structured **inside the package**. You don't need any of it to integrate the SDK — [Getting Started](/guide/getting-started) and [Configuration](/guide/configuration) are enough for that. Read on if you want to understand how requests flow through the SDK, debug an issue at the boundary between your host app and `ChatModule`, or contribute to the project.
+
+If you want to hack on the SDK itself, also see [Contributing / Local Dev](/guide/contributing).
+
+## SDK layout
+
+Inside `packages/sdk/src/` (as published on npm, minus the build artifacts):
 
 ```
-chat-service/
-├── packages/
-│   ├── sdk/                             # nestjs-chat — the NestJS module
-│   │   ├── src/
-│   │   │   ├── chat.module.ts           # ChatModule.forRoot() / forRootAsync()
-│   │   │   ├── chat-module-options.ts   # ChatModuleOptions & ChatModuleProviders interfaces
-│   │   │   ├── index.ts                 # Barrel export (public API)
-│   │   │   │
-│   │   │   ├── core/                    # SDK contract — what the host must implement
-│   │   │   │   ├── interfaces/          # IChatAuthGuard, IChatUserExtractor, IChatUserResolver,
-│   │   │   │   │                        # IChatStorageProvider, IChatEventHandler
-│   │   │   │   ├── tokens/              # Injection tokens (@Inject(CHAT_AUTH_GUARD), etc.)
-│   │   │   │   ├── types/               # Shared types (ChatUser, standardized responses)
-│   │   │   │   └── constants/           # Default values, room names, BullMQ queues
-│   │   │   │
-│   │   │   ├── common/                  # Cross-module shared code
-│   │   │   │   ├── prisma/              # PrismaService (PostgreSQL adapter)
-│   │   │   │   ├── guards/              # ChatAuthGuard — delegates to the host's guard
-│   │   │   │   ├── decorators/          # @CurrentChatUser() — extracts the user from the request
-│   │   │   │   ├── exceptions/          # ChatException, ChatErrorCode, handleServiceError
-│   │   │   │   ├── filters/             # ChatExceptionFilter (Prisma + HTTP + unknown errors)
-│   │   │   │   ├── interceptors/        # ChatResponseInterceptor (standardized response format)
-│   │   │   │   ├── logger/              # LoggerModule (Winston 3 transports)
-│   │   │   │   └── context/             # AsyncLocalStorage (requestId per request)
-│   │   │   │
-│   │   │   └── modules/
-│   │   │       ├── channel/             # 36 endpoints, 17 WS events
-│   │   │       ├── message/             # 13 endpoints, 12 WS events
-│   │   │       ├── poll/                # 3 endpoints
-│   │   │       ├── user/                # 5 endpoints
-│   │   │       ├── scheduled/           # 5 endpoints + BullMQ processor
-│   │   │       └── gateway/             # Socket.IO gateway + ChatEventService
-│   │   │
-│   │   ├── prisma/                      # Chat schema (11 models)
-│   │   │   └── schema.prisma
-│   │   └── package.json
-│   │
-│   └── client/                          # @chat-service/client — Frontend provider
-│       ├── core/                        # Interfaces + types + errors
-│       ├── providers/custom/            # CustomChatProvider + services + mappers
-│       └── package.json
+src/
+├── chat.module.ts            # ChatModule.forRoot() / forRootAsync()
+├── chat-module-options.ts    # ChatModuleOptions & ChatModuleProviders
+├── index.ts                  # Barrel export (public API)
 │
-├── apps/
-│   └── example/                         # Example app — working SDK integration
-│       ├── src/
-│       │   ├── app.module.ts            # Imports ChatModule.forRoot() with real providers
-│       │   ├── main.ts                  # Bootstrap with Swagger + global prefix /chat
-│       │   ├── auth.controller.ts       # POST /chat/auth/login, /chat/auth/register
-│       │   ├── prisma.service.ts        # User table (example's own DB)
-│       │   ├── seed.ts                  # Seeds 5 test users
-│       │   └── providers/               # ExampleAuthGuard, ExampleUserExtractor, ExampleUserResolver
-│       ├── prisma/
-│       │   └── schema.prisma            # User schema (example's own DB)
-│       └── .env
+├── core/                     # SDK contract — what the host implements
+│   ├── interfaces/           # IChatAuthGuard, IChatUserExtractor, IChatUserResolver,
+│   │                         # IChatStorageProvider, IChatEventHandler
+│   ├── tokens/               # Injection tokens (@Inject(CHAT_AUTH_GUARD), ...)
+│   ├── types/                # Shared types (ChatUser, socket event names, ...)
+│   └── constants/            # Defaults (limits, room prefixes, BullMQ queue name)
 │
-├── docs/                                # VitePress documentation
-├── pnpm-workspace.yaml                  # pnpm workspaces config
-└── package.json                         # Root scripts
+├── common/                   # Cross-module infrastructure
+│   ├── prisma/               # PrismaService (bundled Prisma 7 + PostgreSQL adapter)
+│   ├── guards/               # ChatAuthGuard — delegates to the host's IChatAuthGuard
+│   ├── decorators/           # @CurrentChatUser() — reads the extractor output
+│   ├── exceptions/           # ChatException, ChatErrorCode, handleServiceError
+│   ├── filters/              # ChatExceptionFilter (Prisma + HTTP + unknown errors)
+│   ├── interceptors/         # ChatResponseInterceptor (envelope format)
+│   ├── logger/               # LoggerModule (Winston)
+│   └── context/              # AsyncLocalStorage (per-request requestId)
+│
+└── modules/
+    ├── channel/              # 36 endpoints, 17 WS events
+    ├── message/              # 13 endpoints, 12 WS events
+    ├── poll/                 # 3 endpoints
+    ├── user/                 # 5 endpoints
+    ├── scheduled/            # 5 endpoints + BullMQ processor
+    └── gateway/              # Socket.IO gateway + ChatEventService
 ```
 
-### Key Distinction: SDK vs Example App
+`prisma/schema.prisma` ships alongside (11 models, bundled migrations under `prisma/migrations/`).
 
-The **SDK** (`packages/sdk/`) is a library. It has:
-- `chat.module.ts` — the `ChatModule` with `forRoot()` and `forRootAsync()` static methods
-- `index.ts` — barrel export for all public types, interfaces, and the module
-- **No `app.module.ts`** and **no `main.ts`** — it cannot run on its own
+`index.ts` is the only thing external code should import from — everything reachable from it is considered part of the public API. Anything under `common/` or deeper paths is internal and subject to change without notice.
 
-The **example app** (`apps/example/`) is a runnable NestJS application that demonstrates how to integrate the SDK. It has:
-- `app.module.ts` — imports `ChatModule.forRoot()` with real provider implementations
-- `main.ts` — bootstraps the NestJS app with Swagger docs
-- Real JWT authentication (login/register endpoints)
-- Its own User database (separate from the chat database)
-- Seed script to create 5 test users
-
-## Modular Architecture
+## Modular architecture
 
 Each feature is an **independent NestJS module** with its own controllers, services, and DTOs. Modules are registered in `ChatModule` and exported globally.
 
@@ -248,16 +215,16 @@ Each HTTP request receives a unique `requestId` via `AsyncLocalStorage`. This re
 
 ## Database Design
 
-### Two Databases
+### Two databases
 
-The Chat Service SDK requires its own **dedicated PostgreSQL database** for chat data. This is separate from your application database:
+`nestjs-chat` requires its own **dedicated PostgreSQL database** (or a separate `?schema=...` on the same cluster) for chat data. It owns this schema end-to-end — its bundled Prisma 7 generates a client against it, and the `chat-migrate` CLI applies migrations against it. Your own application's database stays untouched.
 
 | Database | Tables | Configured via | Managed by |
-|----------|--------|---------------|------------|
-| Chat DB | 11 chat tables | `CHAT_DATABASE_URL` (or `database.url` in `ChatModuleOptions`) | SDK (`packages/sdk/prisma/`) |
-| App DB | Your application tables | Your app's `DATABASE_URL` | Your application |
+|----------|--------|----------------|------------|
+| Chat DB | 11 chat tables | `ChatModuleOptions.database.url` | `nestjs-chat` |
+| Host DB | Whatever your app needs (users, org, billing, …) | Whatever you already use | Your host app |
 
-In the example app, the App DB contains a single `User` table (`apps/example/prisma/`).
+The reason the schemas are separate: running two Prisma clients in the same process against the same schema leads to migration conflicts the moment either project evolves. Isolating the chat data also makes it trivially portable — you can point the SDK at a managed Postgres service while your app DB lives elsewhere.
 
 ### 11 Prisma Models
 
