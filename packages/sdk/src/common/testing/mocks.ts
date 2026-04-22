@@ -121,5 +121,9 @@ export function createMockEmitter() {
     emitToUser: jest.fn(),
     emitToTenant: jest.fn(),
     broadcast: jest.fn(),
+    notifyMessageSent: jest.fn(),
+    notifyChannelCreated: jest.fn(),
+    notifyMention: jest.fn(),
+    notifyUnreadCount: jest.fn(),
   };
 }
