@@ -1,4 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { ChatExceptionFilter } from './common/filters/chat-exception.filter';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { LoggerModule } from './common/logger';
 import {
@@ -56,6 +59,11 @@ export class ChatModule {
       providers: [
         { provide: CHAT_MODULE_OPTIONS, useValue: config },
         ...buildProviders(chatProviders),
+        {
+          provide: APP_FILTER,
+          inject: [WINSTON_MODULE_NEST_PROVIDER],
+          useFactory: (logger: any) => new ChatExceptionFilter(logger),
+        },
       ],
       exports: [
         CHAT_AUTH_GUARD,
@@ -85,6 +93,11 @@ export class ChatModule {
           inject: options.inject || [],
         },
         ...buildProviders(options.providers),
+        {
+          provide: APP_FILTER,
+          inject: [WINSTON_MODULE_NEST_PROVIDER],
+          useFactory: (logger: any) => new ChatExceptionFilter(logger),
+        },
       ],
       exports: [
         CHAT_AUTH_GUARD,
