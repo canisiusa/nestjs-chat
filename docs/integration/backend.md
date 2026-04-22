@@ -547,4 +547,4 @@ pnpm dev
 # Body: { "email": "alice@example.com", "password": "password" }
 ```
 
-See also the repo's [`CONTRIBUTING.md`](https://github.com/canisiusa/nestjs-chat/blob/main/CONTRIBUTING.md) for the full contributor workflow.
+See also [Contributing / Local Dev](/guide/contributing) for the full contributor workflow.
