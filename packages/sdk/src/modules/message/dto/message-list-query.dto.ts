@@ -11,23 +11,35 @@ export class MessageListQueryDto {
   @IsOptional()
   limit?: number = 30;
 
-  @ApiPropertyOptional({ description: 'Fetch messages created before this ISO 8601 timestamp', example: '2026-01-15T10:30:00Z' })
+  @ApiPropertyOptional({
+    description: 'Fetch messages created before this ISO 8601 timestamp',
+    example: '2026-01-15T10:30:00Z',
+  })
   @IsDateString()
   @IsOptional()
   before?: string;
 
-  @ApiPropertyOptional({ description: 'Fetch messages created after this ISO 8601 timestamp', example: '2026-01-15T08:00:00Z' })
+  @ApiPropertyOptional({
+    description: 'Fetch messages created after this ISO 8601 timestamp',
+    example: '2026-01-15T08:00:00Z',
+  })
   @IsDateString()
   @IsOptional()
   after?: string;
 
-  @ApiPropertyOptional({ description: 'Whether to include reaction data with each message', example: true })
+  @ApiPropertyOptional({
+    description: 'Whether to include reaction data with each message',
+    example: true,
+  })
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
   includeReactions?: boolean = true;
 
-  @ApiPropertyOptional({ description: 'Whether to include thread info with each message', example: true })
+  @ApiPropertyOptional({
+    description: 'Whether to include thread info with each message',
+    example: true,
+  })
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()

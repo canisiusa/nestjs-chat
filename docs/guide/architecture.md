@@ -10,7 +10,7 @@ description: Technical architecture of the Chat Service SDK — monorepo structu
 ```
 chat-service/
 ├── packages/
-│   ├── sdk/                             # @chat-service/sdk — the NestJS module
+│   ├── sdk/                             # nestjs-chat — the NestJS module
 │   │   ├── src/
 │   │   │   ├── chat.module.ts           # ChatModule.forRoot() / forRootAsync()
 │   │   │   ├── chat-module-options.ts   # ChatModuleOptions & ChatModuleProviders interfaces

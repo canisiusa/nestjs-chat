@@ -13,5 +13,7 @@ logs/
 docs/.vitepress/cache/
 *.env
 !.env.example
-PLAN.md
-AI_FEATURES_PLAN.md
+.plans/
+.DS_Store
+docs/.vitepress/dist/
+.claude/

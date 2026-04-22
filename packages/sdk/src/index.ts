@@ -1,11 +1,23 @@
 // Module
 export { ChatModule } from './chat.module';
-export { ChatModuleOptions, ChatModuleProviders, ChatModuleAsyncOptions } from './chat-module-options';
+export {
+  ChatModuleOptions,
+  ChatModuleProviders,
+  ChatModuleAsyncOptions,
+} from './chat-module-options';
 
 // Interfaces (for host app to implement)
-export { IChatAuthGuard, IChatUserExtractor, ChatAuthUser } from './core/interfaces/chat-auth.interface';
+export {
+  IChatAuthGuard,
+  IChatUserExtractor,
+  ChatAuthUser,
+} from './core/interfaces/chat-auth.interface';
 export { IChatUserResolver } from './core/interfaces/chat-user-resolver.interface';
-export { IChatStorageProvider, ChatUploadOptions, ChatUploadResult } from './core/interfaces/chat-storage-provider.interface';
+export {
+  IChatStorageProvider,
+  ChatUploadOptions,
+  ChatUploadResult,
+} from './core/interfaces/chat-storage-provider.interface';
 export { IChatEventHandler } from './core/interfaces/chat-event-handler.interface';
 
 // Types

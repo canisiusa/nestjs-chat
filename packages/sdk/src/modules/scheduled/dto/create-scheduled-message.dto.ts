@@ -11,13 +11,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CHAT_DEFAULTS } from '../../../core/constants';
 
 export class CreateScheduledMessageDto {
-  @ApiProperty({ description: 'Text content of the scheduled message', example: 'Reminder: standup in 5 minutes!' })
+  @ApiProperty({
+    description: 'Text content of the scheduled message',
+    example: 'Reminder: standup in 5 minutes!',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(CHAT_DEFAULTS.MAX_MESSAGE_LENGTH)
   text: string;
 
-  @ApiProperty({ description: 'ISO 8601 date when the message should be sent', example: '2026-05-01T09:55:00.000Z' })
+  @ApiProperty({
+    description: 'ISO 8601 date when the message should be sent',
+    example: '2026-05-01T09:55:00.000Z',
+  })
   @IsDateString()
   scheduledAt: string;
 

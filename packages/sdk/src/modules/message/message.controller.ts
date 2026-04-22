@@ -68,7 +68,10 @@ export class MessageController {
   @ApiOperation({ summary: 'Send a text message to a channel' })
   @ApiParam({ name: 'id', description: 'Channel ID' })
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
-  @ApiResponse({ status: 403, description: 'Not a member, channel frozen, user muted, or user banned' })
+  @ApiResponse({
+    status: 403,
+    description: 'Not a member, channel frozen, user muted, or user banned',
+  })
   @Post('channels/:id/messages')
   @UseGuards(ChannelMemberGuard, ChannelNotFrozenGuard, UserNotMutedGuard, UserNotBannedGuard)
   sendTextMessage(

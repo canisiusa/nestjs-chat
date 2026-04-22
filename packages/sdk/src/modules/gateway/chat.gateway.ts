@@ -16,10 +16,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { Redis } from 'ioredis';
 import { ChatSocketEvent } from '../../core/types/chat-socket.types';
 import { CHAT_ROOMS } from '../../core/constants/chat.constants';
-import {
-  CHAT_MODULE_OPTIONS,
-  CHAT_USER_EXTRACTOR,
-} from '../../core/tokens/injection-tokens';
+import { CHAT_MODULE_OPTIONS, CHAT_USER_EXTRACTOR } from '../../core/tokens/injection-tokens';
 import { ChatModuleOptions } from '../../chat-module-options';
 import { IChatUserExtractor } from '../../core/interfaces/chat-auth.interface';
 
@@ -51,8 +48,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const pubClient = new Redis(this.options.redis.url);
       const subClient = pubClient.duplicate();
 
-      pubClient.on('error', (err) => this.logger.error('Redis pub client error', { error: err.message }));
-      subClient.on('error', (err) => this.logger.error('Redis sub client error', { error: err.message }));
+      pubClient.on('error', (err) =>
+        this.logger.error('Redis pub client error', { error: err.message }),
+      );
+      subClient.on('error', (err) =>
+        this.logger.error('Redis sub client error', { error: err.message }),
+      );
 
       ioServer.adapter(createAdapter(pubClient, subClient, { key: 'chat:socket.io' }) as any);
       this.logger.info('Socket.IO Redis adapter attached for horizontal scaling');
@@ -64,7 +65,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   handleConnection(client: Socket) {
-    const token = client.handshake.auth?.token || this.extractBearer(client.handshake.headers?.authorization);
+    const token =
+      client.handshake.auth?.token || this.extractBearer(client.handshake.headers?.authorization);
 
     const request: any = {
       headers: {

@@ -1,15 +1,41 @@
 {
-  "name": "@chat-service/sdk",
+  "name": "nestjs-chat",
   "version": "0.1.0",
-  "description": "Chat SDK — NestJS module with ChatModule.forRoot()",
+  "description": "Production-ready real-time chat SDK for NestJS — ChatModule.forRoot() with Prisma, PostgreSQL, Socket.IO, BullMQ, Redis.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "author": "canisius ADOGNON",
+  "homepage": "https://canisiusa.github.io/nestjs-chat/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/canisiusa/nestjs-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/canisiusa/nestjs-chat/issues"
+  },
+  "keywords": [
+    "nestjs",
+    "chat",
+    "realtime",
+    "socket.io",
+    "websocket",
+    "messaging",
+    "prisma",
+    "postgresql",
+    "bullmq",
+    "redis",
+    "multi-tenant",
+    "sdk"
+  ],
   "files": [
     "dist",
+    "!dist/**/*.tsbuildinfo",
     "bin",
     "prisma/schema.prisma",
-    "prisma/migrations"
+    "prisma/migrations",
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "chat-migrate": "bin/migrate.js"
@@ -17,8 +43,14 @@
   "scripts": {
     "prebuild": "prisma generate",
     "build": "nest build",
-    "lint": "eslint \"{src,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "format:fix": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "test": "jest --passWithNoTests",
+    "test:cov": "jest --coverage --passWithNoTests",
+    "test:watch": "jest --watch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
@@ -60,6 +92,9 @@
     "dotenv": "^17.4.0",
     "jest": "^29.7.0",
     "prettier": "^3.4.0",
+    "eslint": "^9.18.0",
+    "@eslint/js": "^9.18.0",
+    "typescript-eslint": "^8.20.0",
     "ts-jest": "^29.2.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

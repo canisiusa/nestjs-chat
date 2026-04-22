@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { IChatUserExtractor, ChatAuthUser } from '@chat-service/sdk';
+import { IChatUserExtractor, ChatAuthUser } from 'nestjs-chat';
 
 @Injectable()
 export class ExampleUserExtractor implements IChatUserExtractor {

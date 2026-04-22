@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://canisiusa.github.io/nestjs-chat/
+    about: Most questions are answered in the documentation.
+  - name: Security vulnerability
+    url: https://github.com/canisiusa/nestjs-chat/security/advisories/new
+    about: Please report security issues privately — do not open a public issue.

@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, ValidationPipe, Post, Get, Param, Body } from '@nestjs/common';
+import { Controller, UseGuards, Post, Get, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ChatAuthGuard } from '../../common/guards';
 import { CurrentChatUser } from '../../common/decorators';

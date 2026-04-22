@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IChatUserResolver, ChatUser } from '@chat-service/sdk';
+import { IChatUserResolver, ChatUser } from 'nestjs-chat';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()

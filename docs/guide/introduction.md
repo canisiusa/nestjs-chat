@@ -9,7 +9,7 @@ description: Overview of the Chat Service SDK — a real-time chat module for Ne
 
 The Chat Service is a **real-time chat SDK for NestJS**. It provides a complete API (REST + WebSocket) to integrate real-time chat into any NestJS project, while maintaining full control over data and infrastructure.
 
-The SDK is distributed as `@chat-service/sdk` — a NestJS dynamic module that you install and import via `ChatModule.forRoot()`. There is no standalone application to run; it integrates directly into your existing NestJS backend.
+The SDK is distributed as `nestjs-chat` — a NestJS dynamic module that you install and import via `ChatModule.forRoot()`. There is no standalone application to run; it integrates directly into your existing NestJS backend.
 
 ::: tip Why a self-hosted SDK?
 SaaS solutions charge per message or per active user. With the Chat Service SDK, you only pay for your PostgreSQL + Redis infrastructure. No external dependencies, no artificial limits.
@@ -57,7 +57,7 @@ The project is organized as a pnpm monorepo:
 
 | Package | Path | Description |
 |---------|------|-------------|
-| `@chat-service/sdk` | `packages/sdk/` | The NestJS SDK module — `ChatModule.forRoot()` |
+| `nestjs-chat` | `packages/sdk/` | The NestJS SDK module — `ChatModule.forRoot()` |
 | `@chat-service/client` | `packages/client/` | Frontend React provider |
 | Example App | `apps/example/` | Working integration example with real JWT auth |
 

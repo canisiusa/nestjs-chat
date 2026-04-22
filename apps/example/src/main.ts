@@ -24,7 +24,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Chat Service — Example App')
-    .setDescription('Example integration of @chat-service/sdk')
+    .setDescription('Example integration of nestjs-chat')
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();

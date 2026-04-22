@@ -40,7 +40,7 @@ canActivate(context) {
 
 ```typescript
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { IChatAuthGuard } from '@chat-service/sdk';
+import { IChatAuthGuard } from 'nestjs-chat';
 
 @Injectable()
 export class ChatAuthGuard implements IChatAuthGuard {
@@ -74,7 +74,7 @@ Maps your `AuthUser` (attached by the JWT guard) to the chat service's `ChatAuth
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatUserExtractor, ChatAuthUser } from '@chat-service/sdk';
+import { IChatUserExtractor, ChatAuthUser } from 'nestjs-chat';
 
 @Injectable()
 export class ChatUserExtractor implements IChatUserExtractor {
@@ -104,7 +104,7 @@ Wraps your `MemberService` (or `UserService`) to resolve user IDs into `ChatUser
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatUserResolver, ChatUser } from '@chat-service/sdk';
+import { IChatUserResolver, ChatUser } from 'nestjs-chat';
 import { MemberService } from '../member/member.service';
 
 @Injectable()
@@ -166,7 +166,7 @@ import {
   IChatStorageProvider,
   ChatUploadOptions,
   ChatUploadResult,
-} from '@chat-service/sdk';
+} from 'nestjs-chat';
 import { StorageService } from '../media/storage.service';
 import { Readable } from 'stream';
 
@@ -207,7 +207,7 @@ Reacts to chat events — publish to your notification system, analytics pipelin
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatEventHandler } from '@chat-service/sdk';
+import { IChatEventHandler } from 'nestjs-chat';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
@@ -260,7 +260,7 @@ Ties all the adapters together into a single NestJS module.
 ```typescript
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ChatModule } from '@chat-service/sdk';
+import { ChatModule } from 'nestjs-chat';
 
 import { ChatAuthGuard } from './chat-auth.guard';
 import { ChatUserExtractor } from './chat-user-extractor';

@@ -52,12 +52,7 @@ export class ChatModule {
     return {
       module: ChatModule,
       global: true,
-      imports: [
-        PrismaModule,
-        LoggerModule.register(config.logging),
-
-        ...FEATURE_MODULES,
-      ],
+      imports: [PrismaModule, LoggerModule.register(config.logging), ...FEATURE_MODULES],
       providers: [
         { provide: CHAT_MODULE_OPTIONS, useValue: config },
         ...buildProviders(chatProviders),

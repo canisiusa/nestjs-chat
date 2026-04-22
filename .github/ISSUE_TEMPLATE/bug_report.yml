@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a reproducible bug in nestjs-chat
+title: '[bug]: '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill out the fields below so we can reproduce the issue quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. What did you expect, and what actually happened?
+      placeholder: When I call ChatModule.forRoot({...}), ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps to reproduce. A link to a repo or a gist with a minimal NestJS app is ideal.
+      placeholder: |
+        1. Install nestjs-chat@x.y.z
+        2. Configure ChatModule with ...
+        3. Call ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: nestjs-chat version
+      placeholder: '0.1.0'
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      placeholder: 'v22.11.0'
+    validations:
+      required: true
+
+  - type: input
+    id: nestjs-version
+    attributes:
+      label: '@nestjs/core version'
+      placeholder: '10.4.15'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Docker / container
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack trace
+      description: Paste any relevant logs or stack traces here. Please redact secrets.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I am using a supported version of Node.js (18+) and NestJS (10+).
+          required: true

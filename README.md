@@ -1,8 +1,14 @@
-# Chat Service
+# nestjs-chat
+
+[![npm version](https://img.shields.io/npm/v/nestjs-chat.svg)](https://www.npmjs.com/package/nestjs-chat)
+[![CI](https://github.com/canisiusa/nestjs-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/canisiusa/nestjs-chat/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/canisiusa/nestjs-chat/actions/workflows/codeql.yml/badge.svg)](https://github.com/canisiusa/nestjs-chat/actions/workflows/codeql.yml)
+[![Docs](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://canisiusa.github.io/nestjs-chat/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 Real-time chat SDK for NestJS — Prisma 7 + PostgreSQL + Socket.IO + BullMQ.
 
-Designed as a **NestJS SDK/Plugin**: install `@chat-service/sdk`, import `ChatModule.forRoot()` into any backend project, and inject your own auth, users, and storage.
+Designed as a **NestJS SDK/Plugin**: install `nestjs-chat`, import `ChatModule.forRoot()` into any backend project, and inject your own auth, users, and storage.
 
 ## Quick Start
 
@@ -49,7 +55,7 @@ curl http://localhost:3001/chat/channels/my \
 ```
 chat-service/
 ├── packages/
-│   ├── sdk/                    # @chat-service/sdk — ChatModule.forRoot()
+│   ├── sdk/                    # nestjs-chat — ChatModule.forRoot()
 │   │   ├── src/
 │   │   │   ├── chat.module.ts  # Main module (library, no app.module/main.ts)
 │   │   │   ├── index.ts        # Barrel export
@@ -97,14 +103,14 @@ Contents:
 - **[Guide](/docs/guide/)** — Introduction, Getting Started, Architecture, Configuration
 - **[Backend Integration](/docs/integration/backend.md)** — How to install the SDK and integrate it into your NestJS app
 - **[Frontend Integration](/docs/integration/frontend.md)** — React provider to connect your UI to the chat service
-- **[API Reference](/docs/api/)** — 63 REST endpoints, 42 WebSocket events, error codes, DB schema
+- **[API Reference](/docs/api/)** — 63 REST endpoints, 33 WebSocket events, error codes, DB schema
 
 ## Overview
 
 | Metric | Value |
 |--------|-------|
 | REST Endpoints | 63 |
-| WebSocket Events | 42 |
+| WebSocket Events | 33 |
 | Prisma Models | 11 |
 | Error Codes | 30 |
 | Tech | NestJS 10, Prisma 7, PostgreSQL, Socket.IO, BullMQ, Redis, Winston |

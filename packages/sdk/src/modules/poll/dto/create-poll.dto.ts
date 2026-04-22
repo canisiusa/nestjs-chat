@@ -38,7 +38,10 @@ export class CreatePollDto {
   @IsOptional()
   allowUserSuggestion?: boolean = false;
 
-  @ApiPropertyOptional({ description: 'ISO 8601 date when the poll closes', example: '2026-05-01T18:00:00.000Z' })
+  @ApiPropertyOptional({
+    description: 'ISO 8601 date when the poll closes',
+    example: '2026-05-01T18:00:00.000Z',
+  })
   @IsDateString()
   @IsOptional()
   closeAt?: string;

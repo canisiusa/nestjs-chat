@@ -1,6 +1,6 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { IChatAuthGuard } from '@chat-service/sdk';
+import { IChatAuthGuard } from 'nestjs-chat';
 
 @Injectable()
 export class ExampleAuthGuard implements IChatAuthGuard {

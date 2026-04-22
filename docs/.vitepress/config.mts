@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: 'Chat Service',
+  title: 'nestjs-chat',
   description: 'Real-time chat SDK for NestJS — Prisma + PostgreSQL + Socket.IO',
+  base: '/nestjs-chat/',
   themeConfig: {
     logo: '/logo.svg',
     nav: [

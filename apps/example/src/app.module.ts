@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { ChatModule } from '@chat-service/sdk';
+import { ChatModule } from 'nestjs-chat';
 import { PrismaService } from './prisma.service';
 import { AuthController } from './auth.controller';
 import { ExampleAuthGuard, ExampleUserExtractor, ExampleUserResolver } from './providers';

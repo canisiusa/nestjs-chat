@@ -37,16 +37,18 @@ export class LoggerModule {
               level: logLevel === 'debug' ? 'debug' : logLevel,
               format: winston.format.combine(
                 winston.format.colorize(),
-                winston.format.printf(({ timestamp, level, message, requestId, context, ...meta }) => {
-                  const rid = requestId ? `[${requestId}]` : '';
-                  const ctx = context ? `[${context}]` : '';
-                  const metaKeys = Object.keys(meta).filter((k) => !['stack'].includes(k));
-                  const metaStr = metaKeys.length
-                    ? ` ${JSON.stringify(Object.fromEntries(metaKeys.map((k) => [k, meta[k]])))}`
-                    : '';
-                  const stack = meta.stack ? `\n${meta.stack}` : '';
-                  return `${timestamp} ${level} ${rid}${ctx} ${message}${metaStr}${stack}`;
-                }),
+                winston.format.printf(
+                  ({ timestamp, level, message, requestId, context, ...meta }) => {
+                    const rid = requestId ? `[${requestId}]` : '';
+                    const ctx = context ? `[${context}]` : '';
+                    const metaKeys = Object.keys(meta).filter((k) => !['stack'].includes(k));
+                    const metaStr = metaKeys.length
+                      ? ` ${JSON.stringify(Object.fromEntries(metaKeys.map((k) => [k, meta[k]])))}`
+                      : '';
+                    const stack = meta.stack ? `\n${meta.stack}` : '';
+                    return `${timestamp} ${level} ${rid}${ctx} ${message}${metaStr}${stack}`;
+                  },
+                ),
               ),
             }),
 

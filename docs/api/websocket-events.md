@@ -12,22 +12,27 @@ import { io } from 'socket.io-client';
 const socket = io('https://api.example.com/chat', {
   auth: {
     token: '<jwt-access-token>',
-    userId: '<user-id>',
-    tenantId: '<tenant-id>',
   },
   transports: ['websocket', 'polling'],
 });
 ```
 
-On connection, the server automatically joins the client to:
-- `user:<userId>` -- personal room for direct notifications
-- `tenant:<tenantId>` -- tenant-wide broadcasts
+### Authentication
+
+The gateway validates the JWT at handshake via your `IChatUserExtractor`. The client **must** provide a valid Bearer token via `auth.token` (or an `Authorization: Bearer ...` header). Connections without a valid token are **rejected** and disconnected immediately.
+
+`userId` and `tenantId` are **never** read from the handshake — they are extracted from the verified token only. This prevents impersonation: a client cannot join another user's room by passing a fake `userId`.
+
+On successful auth, the server automatically joins the client to:
+- `user:<userId>` -- personal room for direct notifications (derived from token)
+- `tenant:<tenantId>` -- tenant-wide broadcasts (derived from token)
 
 ### Connection Lifecycle
 
 | Event | Direction | Description |
 |-------|-----------|-------------|
 | `connect` | Server | Client successfully connected. Auto-joined to user and tenant rooms. |
+| `chat:auth:error` | Server | Emitted before disconnect when auth fails. Payload: `{ message: string }`. |
 | `disconnect` | Server | Client disconnected. Automatically leaves all rooms. |
 
 ---
@@ -116,7 +121,7 @@ interface LeaveChannelPayload {
 
 ---
 
-## Server to Client Events (38)
+## Server to Client Events (29)
 
 These are events the server emits to connected clients.
 
@@ -508,16 +513,16 @@ interface ChannelUnfrozenPayload {
 
 #### `chat:channel:muted`
 
-The current user muted a channel (notification suppression).
+The current user muted a channel (notification suppression). This is a **personal preference** — it is emitted only to the acting user's own sockets, never broadcast to other channel members.
 
-**Target room:** `user:<userId>`
+**Target room:** `user:<userId>` only
 
 **Payload:**
 
 ```typescript
 interface ChannelMutedPayload {
   channelId: string;
-  isMuted: true;
+  userId: string;
 }
 ```
 
@@ -525,16 +530,16 @@ interface ChannelMutedPayload {
 
 #### `chat:channel:unmuted`
 
-The current user unmuted a channel.
+The current user unmuted a channel. Like `chat:channel:muted`, emitted only to the acting user.
 
-**Target room:** `user:<userId>`
+**Target room:** `user:<userId>` only
 
 **Payload:**
 
 ```typescript
 interface ChannelUnmutedPayload {
   channelId: string;
-  isMuted: false;
+  userId: string;
 }
 ```
 
@@ -559,17 +564,33 @@ interface MetadataChangedPayload {
 
 #### `chat:channel:hidden`
 
-A channel was hidden for the current user.
+A channel was hidden for the current user. Personal preference — emitted only to the acting user.
 
-**Target room:** `user:<userId>`
+**Target room:** `user:<userId>` only
 
 **Payload:**
 
 ```typescript
 interface ChannelHiddenPayload {
   channelId: string;
-  isHidden: true;
-  hidePreviousMessages: boolean;
+  userId: string;
+}
+```
+
+---
+
+#### `chat:channel:unhidden`
+
+A channel was unhidden (re-shown) for the current user. Personal preference — emitted only to the acting user. Useful for multi-tab sync: if a user unhides a channel in tab A, tab B receives this event to re-display it.
+
+**Target room:** `user:<userId>` only
+
+**Payload:**
+
+```typescript
+interface ChannelUnhiddenPayload {
+  channelId: string;
+  userId: string;
 }
 ```
 
@@ -713,9 +734,12 @@ interface OperatorUpdatedPayload {
 | 24 | `chat:channel:unmuted` | Server -> Client | Channels | `user:<id>` |
 | 25 | `chat:metadata:changed` | Server -> Client | Channels | `channel:<id>` |
 | 26 | `chat:channel:hidden` | Server -> Client | Channels | `user:<id>` |
-| 27 | `chat:channel:member:count:changed` | Server -> Client | Channels | `channel:<id>` |
-| 28 | `chat:user:banned` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
-| 29 | `chat:user:unbanned` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
-| 30 | `chat:user:muted` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
-| 31 | `chat:user:unmuted` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
-| 32 | `chat:operator:updated` | Server -> Client | Moderation | `channel:<id>` |
+| 27 | `chat:channel:unhidden` | Server -> Client | Channels | `user:<id>` |
+| 28 | `chat:channel:member:count:changed` | Server -> Client | Channels | `channel:<id>` |
+| 29 | `chat:user:banned` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
+| 30 | `chat:user:unbanned` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
+| 31 | `chat:user:muted` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
+| 32 | `chat:user:unmuted` | Server -> Client | Moderation | `channel:<id>` + `user:<id>` |
+| 33 | `chat:operator:updated` | Server -> Client | Moderation | `channel:<id>` |
+
+**Total: 33 events** — 4 client→server + 29 server→client.

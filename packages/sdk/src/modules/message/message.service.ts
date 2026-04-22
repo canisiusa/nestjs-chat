@@ -579,7 +579,7 @@ export class MessageService {
     return {};
   }
 
-  private async notifyUnreadToMembers(channelId: string, senderId: string, tenantId: string) {
+  private async notifyUnreadToMembers(channelId: string, senderId: string, _tenantId: string) {
     const members = await this.prisma.chatChannelMember.findMany({
       where: { channelId, leftAt: null, isBanned: false, userId: { not: senderId } },
       select: { userId: true },

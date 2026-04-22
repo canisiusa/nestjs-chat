@@ -1,6 +1,6 @@
 # Backend Integration
 
-This guide explains how to integrate the Chat Service SDK into any NestJS backend application. The SDK is distributed as `@chat-service/sdk` — a NestJS dynamic module that you install, import via `ChatModule.forRoot()`, and extend with your own authentication, user resolution, and storage logic.
+This guide explains how to integrate the Chat Service SDK into any NestJS backend application. The SDK is distributed as `nestjs-chat` — a NestJS dynamic module that you install, import via `ChatModule.forRoot()`, and extend with your own authentication, user resolution, and storage logic.
 
 ::: tip Working example
 The `apps/example/` directory contains a complete, runnable integration example with real JWT authentication, a user database, and seed data. Use it as a reference alongside this guide.
@@ -8,7 +8,7 @@ The `apps/example/` directory contains a complete, runnable integration example 
 
 ## Overview
 
-Install `@chat-service/sdk` and import `ChatModule.forRoot()` into your NestJS application. You provide implementations of **3 required interfaces** and **2 optional ones** — the SDK handles everything else: database (Prisma + PostgreSQL), WebSocket gateway (Socket.IO), job queues (BullMQ + Redis), and all business logic (channels, messages, polls, scheduled messages).
+Install `nestjs-chat` and import `ChatModule.forRoot()` into your NestJS application. You provide implementations of **3 required interfaces** and **2 optional ones** — the SDK handles everything else: database (Prisma + PostgreSQL), WebSocket gateway (Socket.IO), job queues (BullMQ + Redis), and all business logic (channels, messages, polls, scheduled messages).
 
 ```
 Your NestJS App
@@ -38,7 +38,7 @@ If your project is in the same monorepo or you link the package locally:
 // package.json
 {
   "dependencies": {
-    "@chat-service/sdk": "workspace:*"
+    "nestjs-chat": "workspace:*"
   }
 }
 ```
@@ -46,7 +46,7 @@ If your project is in the same monorepo or you link the package locally:
 ### Option B: npm package
 
 ```bash
-pnpm add @chat-service/sdk
+pnpm add nestjs-chat
 ```
 
 ### Apply the chat database schema
@@ -91,7 +91,7 @@ Validates incoming HTTP and WebSocket requests. Return `true` to allow access, `
 **Interface definition:**
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/interfaces/chat-auth.interface.ts
+// nestjs-chat — packages/sdk/src/core/interfaces/chat-auth.interface.ts
 
 import { ExecutionContext } from '@nestjs/common';
 
@@ -106,7 +106,7 @@ export interface IChatAuthGuard {
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ExecutionContext } from '@nestjs/common';
-import { IChatAuthGuard } from '@chat-service/sdk';
+import { IChatAuthGuard } from 'nestjs-chat';
 
 @Injectable()
 export class MyAuthGuard implements IChatAuthGuard {
@@ -143,7 +143,7 @@ Extracts the authenticated user identity from the request object. Called after t
 **Interface definition:**
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/interfaces/chat-auth.interface.ts
+// nestjs-chat — packages/sdk/src/core/interfaces/chat-auth.interface.ts
 
 export interface ChatAuthUser {
   id: string;
@@ -161,7 +161,7 @@ export interface IChatUserExtractor {
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatUserExtractor, ChatAuthUser } from '@chat-service/sdk';
+import { IChatUserExtractor, ChatAuthUser } from 'nestjs-chat';
 
 @Injectable()
 export class MyUserExtractor implements IChatUserExtractor {
@@ -194,7 +194,7 @@ Resolves user IDs into display profiles. The SDK calls this to populate sender i
 **Interface definition:**
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/interfaces/chat-user-resolver.interface.ts
+// nestjs-chat — packages/sdk/src/core/interfaces/chat-user-resolver.interface.ts
 
 import { ChatUser } from '../types/chat-user.types';
 
@@ -209,7 +209,7 @@ export interface IChatUserResolver {
 Where `ChatUser` is:
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/types/chat-user.types.ts
+// nestjs-chat — packages/sdk/src/core/types/chat-user.types.ts
 
 export interface ChatUser {
   id: string;
@@ -225,7 +225,7 @@ export interface ChatUser {
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatUserResolver, ChatUser } from '@chat-service/sdk';
+import { IChatUserResolver, ChatUser } from 'nestjs-chat';
 import { UserService } from '../user/user.service';
 
 @Injectable()
@@ -290,7 +290,7 @@ Handles file uploads for message attachments (images, videos, documents). If not
 **Interface definition:**
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/interfaces/chat-storage-provider.interface.ts
+// nestjs-chat — packages/sdk/src/core/interfaces/chat-storage-provider.interface.ts
 
 import { Readable } from 'stream';
 
@@ -321,7 +321,7 @@ export interface IChatStorageProvider {
 import { Injectable } from '@nestjs/common';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { IChatStorageProvider, ChatUploadOptions, ChatUploadResult } from '@chat-service/sdk';
+import { IChatStorageProvider, ChatUploadOptions, ChatUploadResult } from 'nestjs-chat';
 import { Readable } from 'stream';
 
 @Injectable()
@@ -373,7 +373,7 @@ React to chat lifecycle events. Use this to trigger push notifications, update a
 **Interface definition:**
 
 ```typescript
-// @chat-service/sdk — packages/sdk/src/core/interfaces/chat-event-handler.interface.ts
+// nestjs-chat — packages/sdk/src/core/interfaces/chat-event-handler.interface.ts
 
 export interface IChatEventHandler {
   onMessageSent?(channelId: string, message: Record<string, unknown>, tenantId: string): Promise<void>;
@@ -387,7 +387,7 @@ export interface IChatEventHandler {
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { IChatEventHandler } from '@chat-service/sdk';
+import { IChatEventHandler } from 'nestjs-chat';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
@@ -422,7 +422,7 @@ The synchronous configuration method. Use this when all config values are availa
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { ChatModule } from '@chat-service/sdk';
+import { ChatModule } from 'nestjs-chat';
 import { MyAuthGuard } from './chat/my-auth.guard';
 import { MyUserExtractor } from './chat/my-user-extractor';
 import { MyUserResolver } from './chat/my-user-resolver';
@@ -483,7 +483,7 @@ Use async configuration when you need to inject `ConfigService` or other provide
 ```typescript
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ChatModule } from '@chat-service/sdk';
+import { ChatModule } from 'nestjs-chat';
 import { MyAuthGuard } from './chat/my-auth.guard';
 import { MyUserExtractor } from './chat/my-user-extractor';
 import { MyUserResolver } from './chat/my-user-resolver';
