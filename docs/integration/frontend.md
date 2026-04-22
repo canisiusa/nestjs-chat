@@ -1,18 +1,19 @@
 # Frontend Integration
 
-This guide explains how to integrate the chat service into a React frontend application. The frontend client is located in `packages/client/` and uses a **provider pattern** that abstracts the underlying chat transport, allowing you to swap providers without changing any UI code.
+This guide explains how to consume the `nestjs-chat` backend from a React frontend. The React provider uses a **provider pattern** that abstracts the underlying chat transport, so you can swap providers without changing UI code.
 
-## Installation
+::: warning The React client is not yet published on npm
+`@chat-service/client` currently lives in the [nestjs-chat repo](https://github.com/canisiusa/nestjs-chat/tree/main/packages/client) but hasn't been published to npm yet. Until it is, vendor the folder into your frontend project, or open an issue on GitHub if you'd like the package published sooner.
 
-Copy the `packages/client/` directory into your frontend project, or reference it as a workspace dependency:
+If you're writing your own frontend (not React, or just a minimal HTTP + Socket.IO wrapper), the REST + WebSocket shapes below are the contract — you don't need any npm package to talk to `nestjs-chat`.
+:::
 
-```json
-// package.json
-{
-  "dependencies": {
-    "@chat-service/client": "workspace:*"
-  }
-}
+## Installation (vendored)
+
+Copy [`packages/client/`](https://github.com/canisiusa/nestjs-chat/tree/main/packages/client) into your frontend project, then install its peer deps:
+
+```bash
+pnpm add axios socket.io-client
 ```
 
 The client package contains:
@@ -217,5 +218,5 @@ Always store and call the unsubscribe functions on component unmount to prevent 
 | Provider abstraction | `IChatProvider` interface with sub-services |
 | Provider selection | `createChatProvider()` factory with `ChatProviderType` enum |
 | React integration | `GlobalChatProvider` context component |
-| Environment config | `VITE_CHAT_API_URL` pointing to the chat service |
-| Package location | `packages/client/` in the chat-service monorepo |
+| Environment config | `VITE_CHAT_API_URL` pointing to your chat-enabled NestJS app |
+| Source | [`packages/client/`](https://github.com/canisiusa/nestjs-chat/tree/main/packages/client) in the `nestjs-chat` repo (not yet on npm — vendor the folder) |

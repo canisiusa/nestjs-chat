@@ -1,13 +1,13 @@
 ---
 title: Configuration
-description: Complete configuration of the Chat Service SDK — module options, providers, environment variables.
+description: Complete configuration reference for nestjs-chat — module options, providers, environment variables.
 ---
 
 # Configuration
 
 ## ChatModuleOptions
 
-The `ChatModuleOptions` interface configures the Chat Service behavior when imported via `ChatModule.forRoot()`.
+The `ChatModuleOptions` interface configures `nestjs-chat`'s behavior when imported via `ChatModule.forRoot()`.
 
 ```typescript
 interface ChatModuleOptions {
@@ -43,7 +43,7 @@ database: {
 ```
 
 ::: warning Dedicated database
-The `database.url` must point to a **dedicated PostgreSQL database** for chat data. Do not share it with your main application database to avoid schema conflicts with Prisma. In the example app, this is configured via the `CHAT_DATABASE_URL` environment variable.
+The `database.url` must point to a **dedicated PostgreSQL database** (or a separate schema in the same cluster) for chat data. The SDK owns its schema and runs its own migrations — pointing it at your main app's database will cause Prisma migration conflicts.
 :::
 
 ### `redis` (required)
@@ -136,7 +136,7 @@ When a limit is reached, the service throws a `ChatException` with the appropria
 
 ## ChatModuleProviders
 
-The `ChatModuleProviders` interface defines the classes that the host injects into the Chat Service.
+The `ChatModuleProviders` interface defines the classes that the host injects into `ChatModule`.
 
 ```typescript
 interface ChatModuleProviders {
@@ -355,59 +355,45 @@ class MyEventHandler implements IChatEventHandler {
 
 ---
 
-## Environment Variables
+## Environment variables
 
-Environment variables are used by the **example app** (`apps/example/.env`). When using the SDK in your own project, these values are passed programmatically via `ChatModuleOptions`.
+**The SDK itself reads zero environment variables.** Everything is passed explicitly through `ChatModuleOptions`. The variable names below are just a convention used in examples — nothing magical happens if you rename them.
 
-### Example App Variables
+You typically bridge env → `ChatModuleOptions` through NestJS's `ConfigModule`:
 
-| Variable | Required | Description | Default |
-|----------|:--------:|-------------|---------|
-| `CHAT_DATABASE_URL` | Yes | PostgreSQL connection string for the **chat database** (11 chat tables) | - |
-| `DATABASE_URL` | Yes | PostgreSQL connection string for the **example app database** (User table) | - |
-| `REDIS_URL` | Yes | Redis connection string | - |
-| `JWT_SECRET` | Yes | JWT signing secret for the example auth flow | - |
-| `PORT` | No | HTTP server port | `3001` |
-| `CORS_ORIGINS` | No | CORS origins for the example app (host handles its own CORS) | `http://localhost:5173` |
+```ts
+ChatModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => ({
+    database: { url: config.get('CHAT_DATABASE_URL')! },
+    redis: { url: config.get('REDIS_URL')! },
+    logging: { level: config.get('NODE_ENV') === 'production' ? 'info' : 'debug' },
+  }),
+  providers: {
+    authGuard: ChatAuthGuard,
+    userExtractor: ChatUserExtractor,
+    userResolver: ChatUserResolver,
+  },
+}),
+```
 
-::: warning CHAT_DATABASE_URL vs DATABASE_URL
-The SDK uses `CHAT_DATABASE_URL` for its 11 chat tables. This must point to a **dedicated database**, separate from your application database. The example app uses `DATABASE_URL` for its own User table.
-:::
-
-### Complete `.env` Example (for `apps/example/.env`)
+A typical `.env` for the chat integration:
 
 ```ini
-# Chat database (SDK — 11 chat tables)
-CHAT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chat_service?schema=public"
+# Dedicated Postgres database (or a separate ?schema= on the same cluster) for chat data
+CHAT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chat?schema=public"
 
-# Example app database (User table)
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chat_example?schema=public"
-
-# Redis
+# Redis: used for BullMQ (scheduled messages) and the Socket.IO adapter
 REDIS_URL="redis://localhost:6379"
-
-# JWT
-JWT_SECRET="my-super-secret-key"
-
-# Server
-PORT=3001
-NODE_ENV=development
-
-# CORS
-CORS_ORIGINS="http://localhost:5173,http://localhost:3000"
-
-# Socket.IO
-SOCKET_PATH="/socket.io"
-
-# Logging
-LOG_DIR="logs"
 ```
+
+Anything else (JWT secrets, CORS origins, port, Socket.IO path) is your host app's concern — the SDK doesn't touch them.
 
 ---
 
 ## CORS Configuration
 
-CORS is handled entirely by your host application. The Chat Service SDK does not manage CORS — configure it in your NestJS bootstrap:
+CORS is handled entirely by your host application. `nestjs-chat` does not touch CORS — configure it in your NestJS bootstrap:
 
 ```typescript
 // Your host app configures its own NestJS CORS
@@ -476,9 +462,9 @@ Examples:
 
 ---
 
-## Complete Integration Example
+## Complete integration example
 
-See `apps/example/src/app.module.ts` for a working implementation. Here is the pattern:
+A full working pattern combining `forRootAsync` with all five provider hooks:
 
 ```typescript
 @Module({

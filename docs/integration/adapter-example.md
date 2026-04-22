@@ -1,6 +1,6 @@
 # Real-World Adapter Example
 
-This document shows a concrete implementation of the chat SDK integration within a NestJS monorepo. It serves as a reference for wiring the chat module into an application with existing auth, user management, storage, and notification systems.
+This document shows a concrete, production-flavored implementation of the `nestjs-chat` integration inside a NestJS app. It's a step beyond [Getting Started](/guide/getting-started) — instead of toy providers, we plug `nestjs-chat` into a realistic stack with JWT auth, an existing `MemberService`, Google Cloud Storage, and a push-notification service.
 
 ::: tip
 This example assumes your project uses JWT authentication, a `MemberService` for user profiles, and Google Cloud Storage for file uploads. Adapt the code to match your own stack.
