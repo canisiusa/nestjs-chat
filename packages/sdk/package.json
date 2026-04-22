@@ -111,6 +111,16 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "testEnvironment": "node"
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/generated/",
+      "/dist/",
+      ".*\\.module\\.ts$",
+      ".*/testing/.*"
+    ]
   }
 }

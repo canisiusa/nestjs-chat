@@ -32,7 +32,7 @@ export class ChatUserService {
 
   async searchUsers(keyword: string, tenantId: string, limit?: number) {
     try {
-      return this.userResolver.searchUsers(keyword, tenantId, limit);
+      return await this.userResolver.searchUsers(keyword, tenantId, limit);
     } catch (error) {
       throw handleServiceError(error, this.logger, 'ChatUserService.searchUsers', { tenantId });
     }
