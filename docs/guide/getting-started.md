@@ -7,7 +7,7 @@ description: Install nestjs-chat from npm and run your first chat-enabled NestJS
 
 This guide takes you from zero to a running NestJS app with chat features in about 15 minutes, using the [`nestjs-chat`](https://www.npmjs.com/package/nestjs-chat) package.
 
-If you want to **hack on the SDK itself**, see the [`CONTRIBUTING.md`](https://github.com/canisiusa/nestjs-chat/blob/main/CONTRIBUTING.md) in the repo instead.
+If you want to **hack on the SDK itself**, see [Contributing / Local Dev](/guide/contributing) instead.
 
 ## Prerequisites
 
