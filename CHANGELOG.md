@@ -6,14 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-04-22
+
 ### Fixed
 
+- **Prisma migration now actually matches the schema.** The `20260404022659_init` migration shipped in `0.1.0` was missing the `ChatChannel.directKey` column (plus its unique index) that the generated Prisma Client expects. Any channel creation against a freshly-migrated database failed with `P2022: column ChatChannel.directKey does not exist`. Regenerated from the current schema as `20260422161441_init`. **Users on `0.1.0` should upgrade immediately** — see the deprecation notice on npm.
 - **`ChatExceptionFilter` now auto-registered by `ChatModule`.** Previously the filter lived in `packages/sdk/src/common/filters/` but was never wired up. Integrators could throw `ChatException` subclasses and get HTTP 500 responses with "Internal server error" instead of the mapped status + `code`. The filter is now provided via `APP_FILTER` from both `forRoot` and `forRootAsync`.
 - **Exception filter uses duck-typing instead of `instanceof`** for `ChatException` and `HttpException`. Monorepos with multiple `@nestjs/common` versions in the dependency graph (different `class-validator` peer ranges) broke the `instanceof` check across that boundary — validation errors from NestJS appeared as HTTP 500 even though they extended `BadRequestException`. Now we detect exception shape by presence of `getStatus()` + `getResponse()` / `code.startsWith('CHAT_')`.
+- **`searchUsers` and `getScheduledMessages` / `sendScheduledMessageNow`** now properly await their return values, so rejected promises actually hit the `try/catch` and surface as `ChatException` instead of escaping unwrapped.
 
 ### Added
 
-- **E2E test suite committed to the repo** under `packages/sdk/test/e2e/` (4 scripts, 199/199 PASS). New npm scripts: `test:e2e`, `test:e2e:golden`, `test:e2e:extended`, `test:e2e:hardening`, `test:e2e:concurrency`. Requires Postgres + Redis + seeded example app running on `:3001`.
+- **124 unit tests** covering the 5 SDK services (ChatUser, Poll, ScheduledMessage, Channel, Message). Overall statement coverage ≈70% on tested code.
+- **E2E test suite committed to the repo** under `packages/sdk/test/e2e/` (4 scripts, 199/199 PASS). New npm scripts: `test:e2e`, `test:e2e:golden`, `test:e2e:extended`, `test:e2e:hardening`, `test:e2e:concurrency`. The CI now runs the full suite against a real Postgres + Redis + example app on every PR.
+- **GitHub Actions CI** (`ci.yml`, `codeql.yml`, `release.yml`, `docs.yml`) — lint / typecheck / test matrix on Node 20 + 22 / build / integration / E2E / CodeQL / docs-to-Pages / npm publish with SLSA provenance on tags.
+- **Dependabot** configured with guardrails (ignores major bumps of runtime peer deps like NestJS, Prisma, Socket.IO, BullMQ).
+- **Public repo hygiene:** README + LICENSE (MIT) shipped in the tarball, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, PR + issue templates.
 
 ## [0.2.0] — 2026-04-20
 
