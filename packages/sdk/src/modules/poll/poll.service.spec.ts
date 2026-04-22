@@ -139,10 +139,7 @@ describe('PollService', () => {
       id: 'p1',
       status: 'OPEN',
       allowMultipleVotes: false,
-      options: [
-        { id: 'opt_red' },
-        { id: 'opt_blue' },
-      ],
+      options: [{ id: 'opt_red' }, { id: 'opt_blue' }],
     };
 
     const enrichedPoll = (overrides = {}) => ({
@@ -240,10 +237,7 @@ describe('PollService', () => {
       prisma.chatPollVote.findUnique.mockResolvedValue(null as never);
       prisma.chatPollVote.upsert.mockResolvedValue({} as never);
       prisma.chatPollOption.update.mockResolvedValue({} as never);
-      prisma.chatPollVote.findMany.mockResolvedValue([
-        { userId: 'u2' },
-        { userId: 'u3' },
-      ] as never);
+      prisma.chatPollVote.findMany.mockResolvedValue([{ userId: 'u2' }, { userId: 'u3' }] as never);
       prisma.chatPoll.update.mockResolvedValue({} as never);
 
       await service.votePoll('c1', 'p1', 'u2', { optionIds: ['opt_red'] });

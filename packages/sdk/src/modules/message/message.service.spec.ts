@@ -113,7 +113,9 @@ describe('MessageService', () => {
     });
 
     it('notifies mentioned users when mentionedUserIds is non-empty', async () => {
-      prisma.chatMessage.create.mockResolvedValue(baseMessage({ mentionedUserIds: ['u2'] }) as never);
+      prisma.chatMessage.create.mockResolvedValue(
+        baseMessage({ mentionedUserIds: ['u2'] }) as never,
+      );
       prisma.chatChannel.update.mockResolvedValue({} as never);
 
       await service.sendTextMessage('c1', 'u1', 't1', { text: 'hi', mentionedUserIds: ['u2'] });
@@ -138,9 +140,9 @@ describe('MessageService', () => {
 
     it('wraps Prisma failures in ChatException', async () => {
       prisma.chatMessage.create.mockRejectedValue(new Error('db'));
-      await expect(service.sendTextMessage('c1', 'u1', 't1', { text: 'hi' })).rejects.toBeInstanceOf(
-        ChatException,
-      );
+      await expect(
+        service.sendTextMessage('c1', 'u1', 't1', { text: 'hi' }),
+      ).rejects.toBeInstanceOf(ChatException);
     });
   });
 
@@ -179,18 +181,16 @@ describe('MessageService', () => {
   describe('updateMessage', () => {
     it('throws MESSAGE_NOT_FOUND when the message does not exist', async () => {
       prisma.chatMessage.findFirst.mockResolvedValue(null as never);
-      await expect(
-        service.updateMessage('c1', 'm1', 'u1', { text: 'new' }),
-      ).rejects.toMatchObject({ code: ChatErrorCode.MESSAGE_NOT_FOUND });
+      await expect(service.updateMessage('c1', 'm1', 'u1', { text: 'new' })).rejects.toMatchObject({
+        code: ChatErrorCode.MESSAGE_NOT_FOUND,
+      });
     });
 
     it('throws MESSAGE_NOT_OWNER when editing someone else’s message', async () => {
-      prisma.chatMessage.findFirst.mockResolvedValue(
-        baseMessage({ senderId: 'other' }) as never,
-      );
-      await expect(
-        service.updateMessage('c1', 'm1', 'u1', { text: 'new' }),
-      ).rejects.toMatchObject({ code: ChatErrorCode.MESSAGE_NOT_OWNER });
+      prisma.chatMessage.findFirst.mockResolvedValue(baseMessage({ senderId: 'other' }) as never);
+      await expect(service.updateMessage('c1', 'm1', 'u1', { text: 'new' })).rejects.toMatchObject({
+        code: ChatErrorCode.MESSAGE_NOT_OWNER,
+      });
     });
 
     it('updates the message, sets isEdited, and emits MESSAGE_UPDATED', async () => {
@@ -240,9 +240,7 @@ describe('MessageService', () => {
     });
 
     it('refuses deletion by a non-operator third party', async () => {
-      prisma.chatMessage.findFirst.mockResolvedValue(
-        baseMessage({ senderId: 'u_owner' }) as never,
-      );
+      prisma.chatMessage.findFirst.mockResolvedValue(baseMessage({ senderId: 'u_owner' }) as never);
       prisma.chatChannelMember.findUnique.mockResolvedValue({ role: 'MEMBER' } as never);
 
       await expect(service.deleteMessage('c1', 'm1', 'u1')).rejects.toMatchObject({
@@ -251,9 +249,7 @@ describe('MessageService', () => {
     });
 
     it('lets a channel OPERATOR delete anyone’s message', async () => {
-      prisma.chatMessage.findFirst.mockResolvedValue(
-        baseMessage({ senderId: 'u_owner' }) as never,
-      );
+      prisma.chatMessage.findFirst.mockResolvedValue(baseMessage({ senderId: 'u_owner' }) as never);
       prisma.chatChannelMember.findUnique.mockResolvedValue({ role: 'OPERATOR' } as never);
       prisma.chatMessage.update.mockResolvedValue({} as never);
 
