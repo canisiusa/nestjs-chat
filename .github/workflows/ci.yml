@@ -127,3 +127,114 @@ jobs:
         run: npx prisma migrate deploy
       - name: Run integration tests
         run: pnpm --filter nestjs-chat test -- --testPathPattern='\.int\.spec\.ts$' --passWithNoTests
+
+  e2e:
+    name: E2E (example app + 4 suites)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Two logical databases in the same Postgres instance — the example app
+      # stores users in DATABASE_URL, the SDK stores chat data in CHAT_DATABASE_URL.
+      DATABASE_URL: postgresql://test:test@localhost:5432/chat_example
+      CHAT_DATABASE_URL: postgresql://test:test@localhost:5432/chat_service
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-e2e-secret-do-not-use-in-production
+      PORT: 3001
+      CORS_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create example + chat databases
+        run: |
+          PGPASSWORD=test psql -h localhost -U test -d postgres -c 'CREATE DATABASE chat_example;'
+          PGPASSWORD=test psql -h localhost -U test -d postgres -c 'CREATE DATABASE chat_service;'
+
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter nestjs-chat prisma:generate
+          pnpm --filter @chat-service/example prisma:generate
+
+      - name: Apply SDK schema (chat tables)
+        working-directory: packages/sdk
+        env:
+          DATABASE_URL: ${{ env.CHAT_DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Apply example schema (users table)
+        working-directory: apps/example
+        run: npx prisma migrate deploy
+
+      - name: Seed example users
+        working-directory: apps/example
+        run: pnpm seed
+
+      - name: Build SDK + example
+        run: pnpm -r build
+
+      - name: Start example app
+        working-directory: apps/example
+        run: |
+          nohup node dist/main.js > /tmp/example-app.log 2>&1 &
+          echo $! > /tmp/example-app.pid
+
+      - name: Wait for example app to be ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:3001/docs/api-json >/dev/null 2>&1; then
+              echo "Example app is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Example app did not start in 60s" >&2
+          echo "--- last 100 lines of /tmp/example-app.log ---"
+          tail -100 /tmp/example-app.log
+          exit 1
+
+      - name: Run E2E suite
+        working-directory: packages/sdk
+        run: pnpm test:e2e
+
+      - name: Dump example app logs on failure
+        if: failure()
+        run: |
+          echo "--- /tmp/example-app.log ---"
+          tail -200 /tmp/example-app.log || true
+
+      - name: Stop example app
+        if: always()
+        run: |
+          if [ -f /tmp/example-app.pid ]; then
+            kill "$(cat /tmp/example-app.pid)" 2>/dev/null || true
+          fi
