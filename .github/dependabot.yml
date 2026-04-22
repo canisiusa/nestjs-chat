@@ -1,21 +1,50 @@
 version: 2
 updates:
+  # Root workspace (VitePress, repo tooling)
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    labels:
+      - dependencies
     groups:
-      nestjs:
-        patterns:
-          - '@nestjs/*'
-      prisma:
-        patterns:
-          - '@prisma/*'
-          - 'prisma'
       dev-dependencies:
         dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Critical runtime deps — major bumps require manual migration PRs
+      - dependency-name: '@nestjs/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'socket.io'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@socket.io/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'bullmq'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ioredis'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-validator'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-transformer'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'rxjs'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'reflect-metadata'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'uuid'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'pg'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        versions: ['>=24']
 
   - package-ecosystem: npm
     directory: /packages/sdk
@@ -23,16 +52,57 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - sdk
     groups:
       nestjs:
         patterns:
           - '@nestjs/*'
+        update-types:
+          - minor
+          - patch
       prisma:
         patterns:
           - '@prisma/*'
           - 'prisma'
+        update-types:
+          - minor
+          - patch
       dev-dependencies:
         dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: '@nestjs/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'socket.io'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@socket.io/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'bullmq'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ioredis'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-validator'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-transformer'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'rxjs'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'reflect-metadata'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'uuid'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'pg'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        versions: ['>=24']
 
   - package-ecosystem: npm
     directory: /apps/example
@@ -40,9 +110,32 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - example
+    ignore:
+      - dependency-name: '@nestjs/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-validator'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'class-transformer'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        versions: ['>=24']
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+    labels:
+      - dependencies
+      - ci
+    groups:
+      actions:
+        patterns:
+          - '*'
